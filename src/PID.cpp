@@ -37,21 +37,29 @@ int PID::calculate(double currentAngle) {
     }
     _prevError = error;
 
+    double power;
     // Dødsone for å unngå vibrering
     if (std::abs(error) < 1.0) {
-        return 0;
+        power = 0.0;
+    } else {
+        power = _kp * error + _ki * _integral + _kd * dt;
     }
-
-    // pådraget
-    double power = _kp * error + _ki * _integral + _kd * dt;
 
     // Begrenser pådraget
     if (power > 255) power = 255;
     if (power < -255) power = -255;
 
     power = (_prevPower * (1 - _alpha)) + (power * _alpha);
+
+    /*Serial.print("Prev: ");
+    Serial.print(_prevPower);
+    Serial.print(" | New: ");
+    Serial.print(power);
+    Serial.print(" | Floated: ");
+    Serial.println(static_cast<int>(power));*/
+
     _prevPower = power;
 
     // pådraget som heltall
-    return (int)power;
+    return static_cast<int>(power);
 }

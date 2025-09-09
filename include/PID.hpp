@@ -17,7 +17,7 @@ private:
     double _ki;
     double _kd;
 
-    double _alpha = 0.01;
+    double _alpha = 0.001;
     double _prevPower = 0.0;
     double _integral = 0.0;
     double _prevError = 0.0;
