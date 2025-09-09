@@ -2,121 +2,148 @@
 #include <AS5600.h>
 #include <Arduino.h>
 
-//Objekt
-AS5600 as5600;
+class DCMotor {
+public:
+    DCMotor(int PWMPin, int in1Pin, int in2Pin, int channel);
 
-//Pinner motordriveren
-const int MOTOR_PWM_PIN = 25; //Pinne for motorhastighet
-const int MOTOR_IN1_PIN = 16;
-const int MOTOR_IN2_PIN = 17;
+    void begin();
+    void move(int power);
 
-//Pinner sensorkommunikasjon (I2C)
-const int I2C_SDA_PIN = 19;
-const int I2C_SCL_PIN = 18;
+private:
+    int _pwmPin;
+    int _in1Pin;
+    int _in2Pin;
+    int _channel;
+};
 
-//Inst for PWM
-const int PWM_CHANNEL = 0; //første kanal (0-15)
-const int PWM_RESOLUTION = 8; //8-bit hastighet (0-255)
-const int PWM_FREQUENCY = 5000;
+DCMotor::DCMotor(int pwmPin, int in1Pin, int in2Pin, int channel) {
+    _pwmPin = pwmPin;
+    _in1Pin = in1Pin;
+    _in2Pin = in2Pin;
+    _channel = channel;
+}
 
-//variabler
-float targetAngle = 0.0;
-float Kp = 2.5;
+void DCMotor::begin() {
+    pinMode(_in1Pin, OUTPUT);
+    pinMode(_in2Pin, OUTPUT);
+    ledcSetup(_channel, 5000, 8);
+    ledcAttachPin(_pwmPin, _channel);
+}
 
-void setup() {
-    // put your setup code here, to run once:
-
-    //starter kommunikasjon.
-    Serial.begin(115200);
-    Serial.println("Testrigg start :-)");
-
-    //starter I2C-kom. sensor
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-
-    //sjekker kontakt med sensor
-    if (as5600.isConnected()) {
-        Serial.println("Hall-effekt sensor funnet!");
-    }
-    else{
-        Serial.println("Error: Finner ikke Hall-effekt sensor.");
-        while(1); //Stopper programmet (så lenge 1 er 1, ikke kontakt med sensor)
+void DCMotor::move(int power) {
+    // retning basert på fortegnet
+    if (power > 0) {
+        digitalWrite(_in1Pin, HIGH);
+        digitalWrite(_in2Pin, LOW);
+    } else {
+        digitalWrite(_in1Pin, LOW);
+        digitalWrite(_in2Pin, HIGH);
     }
 
-    //motorpinner utgnag
-    pinMode(MOTOR_IN2_PIN, OUTPUT);
-    pinMode(MOTOR_IN1_PIN, OUTPUT);
-    pinMode(MOTOR_PWM_PIN, OUTPUT);
-
-    // Konfigurerer PWM-kanal for motorhastighet
-    ledcSetup(PWM_CHANNEL, PWM_FREQUENCY, PWM_RESOLUTION);
-    ledcAttachPin(MOTOR_PWM_PIN, PWM_CHANNEL);
-
-
+    // hastighet basert på absoluttverdien
+    ledcWrite(_channel, abs(power));
 }
 
 
-int spd = 255;
-void loop() {
-    // put your main code here, to run repeatedly:
 
-    //posisjon sensor
+class PositionController {
+public:
+    PositionController(float kp);
 
-    float currentAngle = as5600.readAngle() * AS5600_RAW_TO_DEGREES;
+    void setTarget(float angle);
 
-    //regner ut feilen
+    int calculate(float currentAngle);
+    float targetAngle;
+
+private:
+    float _kp;
+};
+
+PositionController::PositionController(float kp) {
+    _kp = kp;
+    targetAngle = 0.0; //målet
+}
+
+void PositionController::setTarget(float angle) {
+    targetAngle = angle;
+}
+
+int PositionController::calculate(float currentAngle) {
+    // Regner ut feilen
     float error = targetAngle - currentAngle;
 
-    //motorpådrag
-    float motorPower = Kp*error;
-
-    // setter motor retning
-    if(motorPower > 0){
-        digitalWrite(MOTOR_IN1_PIN, HIGH);
-        digitalWrite(MOTOR_IN2_PIN, LOW);
-    }
-    else {
-        digitalWrite(MOTOR_IN1_PIN, LOW);
-        digitalWrite(MOTOR_IN2_PIN, HIGH);
-    }
-
-    //setter hastigheten
-    int motorSpeed = abs(motorPower); //absoluttverdi for positiv verdi
-    if (motorSpeed > 250) {
-        motorSpeed = 250;               //begrenser hastigheten til max verid
-    }
-
-    //dødsone for motvirke vibrering
+    // Dødsone for å unngå vibrering
     if (abs(error) < 1.0) {
-        motorSpeed = 5; //stopper motoren for små avvik
-        Serial.println("I dødsone.");
+        return 0;
     }
 
-    digitalWrite(MOTOR_IN1_PIN, LOW);
-    digitalWrite(MOTOR_IN2_PIN, HIGH);
-    ledcWrite(PWM_CHANNEL, spd);
-    delay(5000);
-    digitalWrite(MOTOR_IN1_PIN, HIGH);
-    digitalWrite(MOTOR_IN2_PIN, LOW);
-    ledcWrite(PWM_CHANNEL, spd);
+    // pådraget
+    float power = _kp * error;
 
+    // Begrenser pådraget
+    if (power > 255) power = 255;
+    if (power < -255) power = -255;
 
-    //utskrift
-    Serial.print("Mål: ");
-    Serial.print(targetAngle);
-    Serial.print(" | Nåverende vinkel: ");
-    Serial.print(currentAngle, 2);
-    Serial.print (" | Motorpådrag: ");
-    Serial.print(motorSpeed);
-    Serial.print(" | Dir: ");
-    Serial.println(motorPower > 0);
-
-    delay(200); //ikke bra praksis ifølge Øystein, stopper alt men la det til
-    targetAngle += 5;
-
-    if (targetAngle > 360) {
-        targetAngle = -360;
-    }
-
-
-
+    // pådraget som heltall
+    return (int)power;
 }
+
+// Pinner
+const int MOTOR_PWM_PIN = 25;
+const int MOTOR_IN1_PIN = 16;
+const int MOTOR_IN2_PIN = 17;
+const int I2C_SDA_PIN = 19;
+const int I2C_SCL_PIN = 18;
+const int PWM_CHANNEL = 0;
+
+
+DCMotor motor(MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL);
+PositionController controller(2.5); // Kp 2.5
+AS5600 sensor;
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println("Objektorientert testrigg starter...");
+
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+
+    //
+    motor.begin();
+
+    if (!sensor.isConnected()) {
+        Serial.println("FEIL: Finner ikke sensor.");
+        while(1);
+    }
+    Serial.println("Sensor funnet!");
+
+    // startmål
+    controller.setTarget(0.0);
+}
+
+auto t0 = micros();
+void loop() {
+    // sensor
+    float currentAngle = sensor.getCumulativePosition() * AS5600_RAW_TO_DEGREES;
+
+    // pådrag med regulatoren
+    int motorPower = controller.calculate(currentAngle);
+
+    // kjører motor
+    motor.move(motorPower);
+
+    // Utskrift
+    Serial.print("Mål: ");
+    Serial.print(controller.targetAngle);
+    Serial.print(" | Nåværende: ");
+    Serial.print(currentAngle, 2);
+    Serial.print(" | Pådrag: ");
+    Serial.println(motorPower);
+
+    delay(20); //ikke bra praksis ifølge Øystein, stopper alt
+
+    if (millis() - t0 > 1000) {
+        controller.setTarget(controller.targetAngle + 90.0);
+        t0 = millis();
+    }
+}
+
