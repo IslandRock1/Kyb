@@ -14,11 +14,30 @@ const int I2C_SCL_PIN = 18;
 const int PWM_CHANNEL = 0;
 
 DCMotor motor(MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL);
-PID controller(2.5, 0.001, 0.0); // Kp 2.5
+PID controller(2.5, 0.0, 0.0); // Kp 2.5
 AS5600 sensor;
 
+auto null_time_signal = millis();
+int get_motor_power() {
+    auto dt = millis() - null_time_signal;
+    int base_time = 10000;
+    int offset_time = 1000;
+
+    if (dt < base_time) {
+        return 0;
+    }
+
+    double partitions = 10.0;
+    for (int i = 0; i < (partitions + 1); i++) {
+        if (dt < (base_time + offset_time * i)) {
+            return static_cast<int>(i * 255.0 / partitions);
+        }
+    }
+    return 255;
+}
+
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(1152000);
     Serial.println("Objektorientert testrigg starter...");
 
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -30,39 +49,45 @@ void setup() {
     }
     Serial.println("Sensor funnet!");
 
-    // startmål
     controller.setTarget(0.0);
 }
 
-auto t0 = millis();
-auto prev_print_time = millis();
+auto prev_print_time = micros();
 void loop() {
     // sensor
-    double currentAngle = static_cast<double>(sensor.getCumulativePosition()) * AS5600_RAW_TO_DEGREES;
+    int currentAngle_steps = sensor.getCumulativePosition();
 
     // pådrag med regulatoren
-    int motorPower = controller.calculate(currentAngle);
+    double motorPower = controller.calculate(static_cast<double>(currentAngle_steps) * AS5600_RAW_TO_DEGREES);
+    motorPower = get_motor_power();
 
     // kjører motor
-    motor.move(motorPower);
+    motor.move(static_cast<int>(motorPower));
 
-    if (millis() - prev_print_time > 100) {
-        prev_print_time = millis();
+    if (micros() - prev_print_time > 10000) {
+        prev_print_time = micros();
 
         // Utskrift
-        Serial.print("Mål: ");
+        /*Serial.print("Mål: ");
         Serial.print(controller.getTarget());
         Serial.print(" | Nåværende: ");
         Serial.print(currentAngle, 2);
         Serial.print(" | Error: ");
         Serial.print(controller.getTarget() - currentAngle, 2);
         Serial.print(" | Pådrag: ");
-        Serial.println(motorPower);
+        Serial.println(motorPower / 255.0);*/
+
+        // Utskrift for komunikasjon med pc
+        Serial.print(currentAngle_steps);
+        Serial.print(",");
+        Serial.print(motorPower / 255.0, 6);
+        Serial.print(",");
+        Serial.println(micros());
     }
 
-    if (millis() - t0 > 1) {
+    /*if (millis() - t0 > 1) {
         controller.incrementTarget(0.1);
         t0 = millis();
-    }
+    }*/
 }
 

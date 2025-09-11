@@ -22,7 +22,7 @@ double PID::getTarget() {
     return _targetAngle;
 }
 
-int PID::calculate(double currentAngle) {
+double PID::calculate(double currentAngle) {
     // Regner ut feilen
     double error = _targetAngle - currentAngle;
     _integral += error;
@@ -61,5 +61,5 @@ int PID::calculate(double currentAngle) {
     _prevPower = power;
 
     // pådraget som heltall
-    return static_cast<int>(power);
+    return power;
 }

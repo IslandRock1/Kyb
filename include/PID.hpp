@@ -6,7 +6,7 @@
 class PID {
 public:
     PID(double kp, double ki, double kd);
-    int calculate(double currentAngle);
+    double calculate(double currentAngle);
 
     void incrementTarget(double angle);
     void setTarget(double angle);
