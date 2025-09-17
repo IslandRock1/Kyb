@@ -20,16 +20,8 @@ PID controller(2.5, 0.0, 0.0); // Kp 2.5
 AS5600 sensor;
 
 auto null_time_signal = millis();
-bool logging_started = false;
-/*
-int get_motor_power() {
-    auto dt = millis() - null_time_signal;
-    int base_time = 10000;
-    int offset_time = 1000;
-*/
 
-// if !readMotorData = "Ready" return 0 (hold motor), else 255(start motor);
-
+// if python is ready, send "Ready"
 bool checkReadyFromSerial() {
     if (Serial.available()) {
         String msg = Serial.readStringUntil('\n');
@@ -41,6 +33,7 @@ bool checkReadyFromSerial() {
     return false;
 }
 
+// if readMotorData != "Ready" return 0 (hold motor), else 255(start motor);
 int get_motor_power() {
     // check if Python sent "Ready"
     if (!ready_recieved) {
@@ -62,22 +55,8 @@ int get_motor_power() {
             return static_cast<int>(i * 255.0 / partitions);
         }
     }
-    return 255;
+    return 255; // motor ready, start
 }
-/*
-    if (dt < base_time) {
-        return 0;
-    }
-
-    double partitions = 10.0;
-    for (int i = 0; i < (partitions + 1); i++) {
-        if (dt < (base_time + offset_time * i)) {
-            return static_cast<int>(i * 255.0 / partitions);
-        }
-    }
-    return 255;
-}
-*/
 
 void setupSensor() {
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -109,8 +88,6 @@ void setup() {
 
 auto prev_print_time = micros();
 void loop() {
-    // sensor
-    //int currentAngle_steps = sensor.getCumulativePosition();
     int currentAngle_steps = 0;
 
     auto motorPower = get_motor_power();

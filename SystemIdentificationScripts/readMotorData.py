@@ -15,7 +15,6 @@ ser.write(b'Ready\n')
 
 # start time counter and collecting data
 t0 = perf_counter()
-#while perf_counter() - t0 < 20:
 try:
     while True:
         if ser.in_waiting:
@@ -45,7 +44,6 @@ try:
 
 except KeyboardInterrupt:
     print("Manually stopped\n")
-    #break  # allow manual exit
 finally:
     t1 = perf_counter()
     print(f"Total listening time: {(t1 - t0):.2f} | Avg time per reading: {1000000 * (t1 - t0) / len(angle):.0f} us.")
@@ -89,12 +87,6 @@ finally:
         # Align voltage and time with centered-difference result (drop ends)
         voltage_proc = voltage_proc[1:-1]
         time = time[1:-1]
-        #voltage_proc.pop()
-        #voltage_proc.pop(0)
-
-        #time.pop()
-        #time.pop(0)
-
 
         with open("data_logg_speedy.csv", "a") as logg:
             for (a, v, t) in zip(speed, voltage_proc, time):
