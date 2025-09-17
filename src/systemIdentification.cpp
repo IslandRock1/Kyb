@@ -33,6 +33,8 @@ bool checkReadyFromSerial() {
     return false;
 }
 
+bool ready_received = false;
+
 // if readMotorData != "Ready" return 0 (hold motor), else 255(start motor);
 int get_motor_power() {
     // check if Python sent "Ready"
@@ -41,7 +43,7 @@ int get_motor_power() {
             ready_recieved = true;
             null_time_signal = millis(); // reset start time
         } else {
-            return 0 // not ready, hold motor
+            return 0; // not ready, hold motor
         }
     }
 
