@@ -16,7 +16,7 @@ ser.write(b'Ready\n')
 # start time counter and collecting data
 t0 = perf_counter()
 try:
-    while perf_counter() - t0 < 20:
+    while perf_counter() - t0 < 20: # TODO: endre så motoren stopper etter 3 sek når den har nådd v=1
         if ser.in_waiting:
             # Read one line (until '\n')
             line = ser.readline().decode(errors='ignore').strip()
