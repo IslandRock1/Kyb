@@ -1,11 +1,8 @@
-#include <Wire.h>
-#include <AS5600.h>
 #include <Arduino.h>
-#include <iostream>
-#include <string>
 
 #include "PID.hpp"
 #include "DCMotor.hpp"
+#include "SensorAS5600.hpp"
 
 // Pinner
 const int MOTOR_PWM_PIN = 25;
@@ -17,9 +14,9 @@ const int I2C_SDA1_PIN = 21;
 const int I2C_SCL1_PIN = 17;
 const int PWM_CHANNEL = 0;
 
-DCMotor motor(MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL);
-PID controller(2.5, 0.0, 0.0); // Kp 2.5
-AS5600 sensor;
+DCMotor motor{MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL};
+PID controller{2.5, 0.0, 0.0}; // Kp 2.5
+SensorAS5600 sensor{I2C_SDA0_PIN, I2C_SCL0_PIN};
 
 auto null_time_signal = millis();
 
@@ -40,9 +37,9 @@ bool ready_received = false;
 // if readMotorData != "Ready" return 0 (hold motor), else 255(start motor);
 int get_motor_power() {
     // check if Python sent "Ready"
-    if (!ready_recieved) {
+    if (!ready_received) {
         if (checkReadyFromSerial()) {
-            ready_recieved = true;
+            ready_received = true;
             null_time_signal = millis(); // reset start time
         } else {
             return 0; // not ready, hold motor
@@ -62,38 +59,18 @@ int get_motor_power() {
     return 255; // motor ready, start
 }
 
-void setupSensor() {
-    Wire.begin(I2C_SDA0_PIN, I2C_SCL0_PIN);
-
-    auto t0 = millis();
-
-    while (!sensor.isConnected()) {
-        Serial.print("FEIL: Finner ikke sensor.");
-        if (millis() - t0 > 1000) {
-            t0 = millis();
-            Serial.println(".");
-        }
-
-    }
-    Serial.println();
-    Serial.println("Sensor funnet!");
-}
-
 void setup() {
     Serial.begin(1152000);
-    Serial.println("Objektorientert testrigg starter...");
+    Serial.println("Starting system identification logging.");
 
-    // setupSensor();
+    sensor.begin();
     motor.begin();
     controller.setTarget(0.0);
-
-
 }
 
 auto prev_print_time = micros();
 void loop() {
-    int currentAngle_steps = 0;
-
+    uint32_t currentAngle_steps = sensor.getCumulativePosition();
     auto motorPower = get_motor_power();
     motor.move(motorPower);
 
