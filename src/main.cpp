@@ -7,10 +7,12 @@
 
 // Pinner
 const int MOTOR_PWM_PIN = 25;
-const int MOTOR_IN1_PIN = 16;
-const int MOTOR_IN2_PIN = 17;
-const int I2C_SDA_PIN = 19;
-const int I2C_SCL_PIN = 18;
+const int MOTOR_IN1_PIN = 26;
+const int MOTOR_IN2_PIN = 14;
+const int I2C_SDA0_PIN = 18;
+const int I2C_SCL0_PIN = 19;
+const int I2C_SDA1_PIN = 21;
+const int I2C_SCL1_PIN = 17;
 const int PWM_CHANNEL = 0;
 
 DCMotor motor(MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL);
@@ -18,7 +20,7 @@ PID controller(2.5, 0.0, 0.0); // Kp 2.5
 AS5600 sensor;
 
 void setupSensor() {
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.begin(I2C_SDA0_PIN, I2C_SCL0_PIN);
 
     auto t0 = millis();
 
