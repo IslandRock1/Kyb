@@ -51,13 +51,6 @@ double PID::calculate(double currentAngle) {
 
     power = (_prevPower * (1 - _alpha)) + (power * _alpha);
 
-    /*Serial.print("Prev: ");
-    Serial.print(_prevPower);
-    Serial.print(" | New: ");
-    Serial.print(power);
-    Serial.print(" | Floated: ");
-    Serial.println(static_cast<int>(power));*/
-
     _prevPower = power;
 
     // pådraget som heltall
