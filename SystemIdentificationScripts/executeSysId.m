@@ -1,11 +1,11 @@
 clc; clear; close all;
 
-data = readmatrix("data_logg_speedy_old.csv");
+data = readmatrix("data_logg_speedy.csv");
 
-% Assuming columns: timestamp | voltage | angular_speed
-time = data(:,1);
+% Assuming columns: angular_speed | voltage | time
+time = data(:,3) / 1000000.0
 voltage = data(:,2) * 12.0;
-angular_speed = data(:,3);
+angular_speed = data(:,1);
 
 %% Estimate sample time
 dt = mean(diff(time)); % approximate sampling interval
