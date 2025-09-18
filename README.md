@@ -11,4 +11,4 @@ This code is responsible for position control for the robotic arm in Kyb, as wel
 ### TODO
 
 * Implement a website for position control over wifi.
-* Add comunication to the force sensor.
+* Add communication to the force sensor.
