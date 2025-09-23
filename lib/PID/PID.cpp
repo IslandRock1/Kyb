@@ -49,10 +49,5 @@ double PID::calculate(double currentAngle) {
     if (power > 255) power = 255;
     if (power < -255) power = -255;
 
-    power = (_prevPower * (1 - _alpha)) + (power * _alpha);
-
-    _prevPower = power;
-
-    // pådraget som heltall
     return power;
 }
