@@ -21,6 +21,10 @@ void SensorAS5600::begin() {
 	Serial.println("Sensor found!");
 }
 
-uint32_t SensorAS5600::getCumulativePosition() {
+int32_t SensorAS5600::getCumulativePosition() {
 	return _sensor.getCumulativePosition();
+}
+
+void SensorAS5600::resetCumulativePosition() {
+	_sensor.resetCumulativePosition();
 }
