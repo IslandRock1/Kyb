@@ -29,7 +29,7 @@ void setup() {
 }
 
 unsigned long motorIncrementTime = 20000;
-auto prev_print_time = micros();
+auto prev_print_time = millis();
 void loop() {
     uint32_t currentAngle_steps = sensor.getCumulativePosition();
     double currentAngle = static_cast<double>(currentAngle_steps) * SensorAS5600::RAW_TO_DEG;
@@ -37,8 +37,8 @@ void loop() {
     double motorPower = controller.calculate(currentAngle);
     motor.move(static_cast<int>(motorPower));
 
-    if (micros() - prev_print_time > 10000) {
-        prev_print_time = micros();
+    if (millis() - prev_print_time > 1) {
+        prev_print_time = millis();
 
         Serial.print("Target: ");
         Serial.print(controller.getTarget());
