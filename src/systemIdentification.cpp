@@ -8,8 +8,8 @@
 const int MOTOR_PWM_PIN = 25;
 const int MOTOR_IN1_PIN = 26;
 const int MOTOR_IN2_PIN = 14;
-const int I2C_SDA0_PIN = 19;
-const int I2C_SCL0_PIN = 18;
+const int I2C_SDA0_PIN = 18;
+const int I2C_SCL0_PIN = 19;
 const int I2C_SDA1_PIN = 21;
 const int I2C_SCL1_PIN = 17;
 const int PWM_CHANNEL = 0;
@@ -66,15 +66,17 @@ void setup() {
     sensor.begin();
     motor.begin();
     controller.setTarget(0.0);
+
+    sensor.resetCumulativePosition();
 }
 
 auto prev_print_time = micros();
 void loop() {
-    uint32_t currentAngle_steps = sensor.getCumulativePosition();
+    int32_t currentAngle_steps = sensor.getCumulativePosition();
     auto motorPower = get_motor_power();
     motor.move(motorPower);
 
-    if (micros() - prev_print_time > 10000) {
+    if (micros() - prev_print_time > 100000) {
         prev_print_time = micros();
 
         // Utskrift for komunikasjon med pc
