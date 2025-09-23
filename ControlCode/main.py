@@ -15,7 +15,7 @@ response_label = tk.Label(root, text="ESP32 Response: ---")
 response_label.pack(pady=10)
 
 # Slider
-slider = tk.Scale(root, from_=0, to=1000, orient="horizontal", label="Target Position")
+slider = tk.Scale(root, from_=-1000, to=1000, orient="horizontal", label="Target Position")
 slider.pack(pady=10)
 
 def send_value(val):
