@@ -1,3 +1,7 @@
 .pio
 .idea
 .venv
+SystemIdentificationScripts/venv
+SystemIdentificationScripts/__pycache__
+SystemIdentificationScripts/data_processed.csv
+SystemIdentificationScripts/data_raw.csv
