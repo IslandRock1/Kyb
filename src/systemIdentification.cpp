@@ -5,9 +5,9 @@
 #include "SensorAS5600.hpp"
 #include "Config.hpp"
 
-DCMotor motor{MOTOR_PWM_PIN, MOTOR_IN1_PIN, MOTOR_IN2_PIN, PWM_CHANNEL};
+DCMotor motor{MOTOR0_PWM_PIN, MOTOR0_IN1_PIN, MOTOR0_IN2_PIN, PWM_CHANNEL0};
 PID controller{2.5, 0.0, 0.0}; // Kp 2.5
-SensorAS5600 sensor{I2C_SDA0_PIN, I2C_SCL0_PIN};
+SensorAS5600 sensor{I2C_SDA0_PIN, I2C_SCL0_PIN, 0};
 
 auto null_time_signal = millis();
 
@@ -38,7 +38,7 @@ int get_motor_power() {
     }
 
     auto dt = millis() - null_time_signal;
-    int base_time = 10000;
+    int base_time = 1000;
     int offset_time = 1000;
 
     double partitions = 10.0;
@@ -47,6 +47,8 @@ int get_motor_power() {
             return static_cast<int>(i * 255.0 / partitions);
         }
     }
+
+
     return 255; // motor ready, start
 }
 
