@@ -1,12 +1,13 @@
 
 #include "SensorAS5600.hpp"
 
-SensorAS5600::SensorAS5600(const int sda, const int scl)
-	: _sda(sda), _scl(scl) {}
+SensorAS5600::SensorAS5600(const int sda, const int scl, int bus_num)
+	: _sda(sda), _scl(scl), _wire(bus_num) {}
 
 
 void SensorAS5600::begin() {
-	Wire.begin(_sda, _scl);
+	_wire.begin(_sda, _scl);
+	_sensor = AS5600{&_wire};
 
 	auto t0 = millis();
 

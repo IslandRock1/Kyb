@@ -6,7 +6,7 @@
 
 class SensorAS5600 {
 public:
-	SensorAS5600(int SDA, int SCL);
+	SensorAS5600(int SDA, int SCL, int bus_num);
 	void begin();
 	int32_t getCumulativePosition();
 	void resetCumulativePosition();
@@ -17,6 +17,7 @@ private:
 	AS5600 _sensor;
 	int _sda;
 	int _scl;
+	TwoWire _wire;
 };
 
 
