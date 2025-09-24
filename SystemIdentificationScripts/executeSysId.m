@@ -1,9 +1,9 @@
 clc; clear; close all;
 
-data = readmatrix("data_logg_speedy.csv");
+data = readmatrix("../data_processed.csv");
 
 % Assuming columns: angular_speed | voltage | time
-time = data(:,3) / 1000000.0
+time = data(:,3) / 1000000.0;
 voltage = data(:,2) * 12.0;
 angular_speed = data(:,1);
 
