@@ -6,10 +6,12 @@
 
 struct InputData {
     int32_t targetPosition0;
+    int32_t targetPosition1;
 };
 
 struct OutputData {
     int32_t currentPosition0;
+    int32_t currentPosition1;
 };
 
 class SerialControl {

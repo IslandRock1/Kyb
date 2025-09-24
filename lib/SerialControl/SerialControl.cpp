@@ -30,6 +30,7 @@ void SerialControl::parseDATA(const String &input) {
 
     if (!values.empty()) {
         inputData.targetPosition0 = values[0];
+        inputData.targetPosition1 = values[1];
     }
 }
 
@@ -43,5 +44,7 @@ void SerialControl::readData() {
 void SerialControl::sendData() {
     String out;
     out += outputData.currentPosition0;
+    out += ",";
+    out += outputData.currentPosition1;
     Serial.println(out);
 }
