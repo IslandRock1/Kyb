@@ -13,19 +13,19 @@ void SerialControl::update() {
 }
 
 void SerialControl::parseDATA(const String &input) {
-    std::vector<int32_t> values;
+    std::vector<double> values;
     int start = 0;
     int end = input.indexOf(',');
 
     while (end != -1) {
-        values.push_back(input.substring(start, end).toInt());
+        values.push_back(input.substring(start, end).toDouble());
         start = end + 1;
         end = input.indexOf(',', start);
     }
 
     // last number
     if (start < input.length()) {
-        values.push_back(input.substring(start).toInt());
+        values.push_back(input.substring(start).toDouble());
     }
 
     if (!values.empty()) {

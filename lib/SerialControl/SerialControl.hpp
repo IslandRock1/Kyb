@@ -5,13 +5,13 @@
 #include <Arduino.h>
 
 struct InputData {
-    int32_t targetPosition0;
-    int32_t targetPosition1;
+    double targetPosition0;
+    double targetPosition1;
 };
 
 struct OutputData {
-    int32_t currentPosition0;
-    int32_t currentPosition1;
+    double currentPosition0;
+    double currentPosition1;
 };
 
 class SerialControl {
