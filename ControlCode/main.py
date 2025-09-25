@@ -2,74 +2,97 @@ import tkinter as tk
 import serial
 import threading
 
-# --- Configure serial port ---
-# Change this to match your ESP32 COM port (Windows "COMx", Linux "/dev/ttyUSB0")
-ser = serial.Serial('COM3', 115200, timeout=1)
 
-# --- Tkinter GUI ---
-root = tk.Tk()
-root.title("ESP32 Control")
+class ESP32ControlApp:
+    def __init__(self, port, baudrate):
+        # --- Serial setup ---
+        self.ser = serial.Serial(port, baudrate, timeout=1)
 
-# Label to show response
-response_label = tk.Label(root, text="ESP32 Response: ---")
-response_label.pack(pady=10)
+        # State variables
+        self.value_wrist = 0.0
+        self.value_shoulder = 0.0
 
-# Slider
-slider0 = tk.Scale(root, from_=0, to=5000, orient="horizontal", label="Target Position Wrist", length=800)
-slider0.pack(pady=10)
+        # --- Tkinter setup ---
+        self.root = tk.Tk()
+        self.root.title("ESP32 Control")
 
-slider1 = tk.Scale(root, from_=-1000, to=1000, orient="horizontal", label="Target Position Shoulder", length=800)
-slider1.pack(pady=10)
+        # Response label
+        self.response_label = tk.Label(self.root, text="ESP32 Response: ---")
+        self.response_label.pack(pady=10)
 
-value0 = 0
-value1 = 0
+        # Sliders
+        self.slider_wrist = tk.Scale(
+            self.root, from_=0, to=5000, orient="horizontal",
+            label="Target Position Wrist", length=800,
+            command=self.update_wrist
+        )
+        self.slider_wrist.pack(pady=10)
 
-def send_value0(val):
-    global value0
-    value0 = float(val) * (-4.4)
-    """Send slider value to ESP32"""
-    msg = f"{value0},{value1}\n"   # match your ESP32 parser (comma-separated if more than one value)
-    ser.write(msg.encode("utf-8"))
+        self.slider_shoulder = tk.Scale(
+            self.root, from_=-1000, to=1000, orient="horizontal",
+            label="Target Position Shoulder", length=800,
+            command=self.update_shoulder
+        )
+        self.slider_shoulder.pack(pady=10)
 
-def send_value1(val):
-    global value1
-    value1 = float(val)
-    """Send slider value to ESP32"""
-    msg = f"{value0},{value1}\n"   # match your ESP32 parser (comma-separated if more than one value)
-    ser.write(msg.encode("utf-8"))
+        # Start serial reader thread
+        self.running = True
+        self.thread = threading.Thread(target=self.read_serial, daemon=True)
+        self.thread.start()
 
-slider0.config(command=send_value0)
-slider1.config(command=send_value1)
+        # Ensure serial port closes when window closes
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-def formatResponse(msg):
-    if ("," not in msg): return ""
-    v0, v1 = msg.split(",")
-    if (v0 == ""): return ""
-    if (v1 == ""): return ""
-    v0 = float(v0) / 4096.0 * 360.0 / (-4.4)
-    v1 = float(v1) / 4096.0 * 360.0
+    # --- Serial communication ---
+    def send_values(self):
+        """Send current slider values to ESP32"""
+        msg = f"{self.value_wrist},{self.value_shoulder}\n"
+        self.ser.write(msg.encode("utf-8"))
 
-    global value0, value1
+    def read_serial(self):
+        """Background thread to read responses from ESP32"""
+        while self.running:
+            if self.ser.in_waiting:
+                line = self.ser.readline().decode(errors="ignore").strip()
+                if line:
+                    formatted = self.format_response(line)
+                    if formatted:
+                        self.response_label.config(text=f"ESP32 Response: {formatted}")
 
-    d0 = v0 - value0
-    d1 = v1 - value1
+    # --- Slider callbacks ---
+    def update_wrist(self, val):
+        self.value_wrist = float(val)
+        self.send_values()
 
-    return f"Shoulder: {v1:.2f} | Wrist: {v0:.2f}"
+    def update_shoulder(self, val):
+        self.value_shoulder = float(val)
+        self.send_values()
 
-def read_serial():
-    """Background thread to read responses from ESP32"""
-    while True:
-        if ser.in_waiting:
-            line = ser.readline().decode(errors="ignore").strip()
-            if line:
-                response_label.config(text=f"ESP32 Response: {formatResponse(line)}")
+    # --- Helpers ---
+    @staticmethod
+    def format_response(msg):
+        """Format incoming message (expected 'wrist,shoulder')"""
+        if "," not in msg:
+            return ""
+        try:
+            v0, v1 = msg.split(",")
+            if not v0 or not v1:
+                return ""
+            v0, v1 = float(v0), float(v1)
+            return f"Shoulder: {v1:.2f} | Wrist: {v0:.2f}"
+        except ValueError:
+            return ""
 
-# Run serial reader in a background thread
-thread = threading.Thread(target=read_serial, daemon=True)
-thread.start()
+    def on_close(self):
+        """Handle application exit"""
+        self.running = False
+        self.ser.close()
+        self.root.destroy()
 
-# Run GUI
-root.mainloop()
+    def run(self):
+        self.root.mainloop()
 
-# Close serial on exit
-ser.close()
+
+if __name__ == "__main__":
+    app = ESP32ControlApp(port="COM3", baudrate=115200)
+    app.run()
