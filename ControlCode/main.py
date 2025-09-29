@@ -20,20 +20,37 @@ class ESP32ControlApp:
         self.response_label = tk.Label(self.root, text="ESP32 Response: ---")
         self.response_label.pack(pady=10)
 
-        # Sliders
+        # Wrist control
+        wrist_frame = tk.Frame(self.root)
+        wrist_frame.pack(pady=5)
+
         self.slider_wrist = tk.Scale(
-            self.root, from_=0, to=5000, orient="horizontal",
-            label="Target Position Wrist", length=800,
+            wrist_frame, from_=-360, to=360, orient="horizontal",
+            label="Target Position Wrist", length=600,
             command=self.update_wrist
         )
-        self.slider_wrist.pack(pady=10)
+        self.slider_wrist.pack(side="left", padx=5)
+
+        self.entry_wrist = tk.Entry(wrist_frame, width=10)
+        self.entry_wrist.insert(0, "0")
+        self.entry_wrist.pack(side="left", padx=5)
+        self.entry_wrist.bind("<Return>", self.set_wrist_from_entry)
+
+        # Shoulder control
+        shoulder_frame = tk.Frame(self.root)
+        shoulder_frame.pack(pady=5)
 
         self.slider_shoulder = tk.Scale(
-            self.root, from_=-1000, to=1000, orient="horizontal",
-            label="Target Position Shoulder", length=800,
+            shoulder_frame, from_=-360, to=360, orient="horizontal",
+            label="Target Position Shoulder", length=600,
             command=self.update_shoulder
         )
-        self.slider_shoulder.pack(pady=10)
+        self.slider_shoulder.pack(side="left", padx=5)
+
+        self.entry_shoulder = tk.Entry(shoulder_frame, width=10)
+        self.entry_shoulder.insert(0, "0")
+        self.entry_shoulder.pack(side="left", padx=5)
+        self.entry_shoulder.bind("<Return>", self.set_shoulder_from_entry)
 
         # Start serial reader thread
         self.running = True
@@ -62,11 +79,30 @@ class ESP32ControlApp:
     # --- Slider callbacks ---
     def update_wrist(self, val):
         self.value_wrist = float(val)
+        self.entry_wrist.delete(0, tk.END)
+        self.entry_wrist.insert(0, str(int(float(val))))
         self.send_values()
 
     def update_shoulder(self, val):
         self.value_shoulder = float(val)
+        self.entry_shoulder.delete(0, tk.END)
+        self.entry_shoulder.insert(0, str(int(float(val))))
         self.send_values()
+
+    # --- Entry callbacks ---
+    def set_wrist_from_entry(self, event):
+        try:
+            val = float(self.entry_wrist.get())
+            self.slider_wrist.set(val)
+        except ValueError:
+            pass  # ignore invalid input
+
+    def set_shoulder_from_entry(self, event):
+        try:
+            val = float(self.entry_shoulder.get())
+            self.slider_shoulder.set(val)
+        except ValueError:
+            pass  # ignore invalid input
 
     # --- Helpers ---
     @staticmethod

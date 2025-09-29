@@ -11,9 +11,9 @@ LinkageConfigPins pinsWrist = {
     MOTOR0_IN1_PIN,
     MOTOR0_IN2_PIN,
     PWM_CHANNEL0,
-    1.0,
+    -4.4,
 
-    2.5, 0, 0,
+    2.5, 0, 0.01,
     I2C_SDA0_PIN, I2C_SCL0_PIN, I2C_BUSNUM0
 };
 MotorLinkage motorLinkageWrist{pinsWrist};
@@ -25,7 +25,7 @@ LinkageConfigPins pinsShoulder = {
     PWM_CHANNEL1,
     1.0,
 
-    2.5, 0, 0,
+    2.5, 0, 0.01,
     I2C_SDA1_PIN, I2C_SCL1_PIN, I2C_BUSNUM1
 };
 MotorLinkage motorLinkageShoulder{pinsShoulder};

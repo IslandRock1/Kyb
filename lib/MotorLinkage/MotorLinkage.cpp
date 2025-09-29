@@ -15,9 +15,10 @@ MotorLinkage::MotorLinkage(const LinkageConfigPins &pins)
     ),
     _sensor(
         pins.I2C_SDA_PIN,
-        pins.I2C_SDA_PIN,
+        pins.I2C_SCL_PIN,
         pins.I2C_BUS_NUM
-    ){}
+    ),
+    _gearing(pins.gearing){}
 
 void MotorLinkage::begin() {
     _sensor.begin();
@@ -27,7 +28,7 @@ void MotorLinkage::begin() {
 }
 
 void MotorLinkage::update(const double degrees) {
-    _pid.setTarget(degrees);
+    _pid.setTarget(degrees * _gearing);
 
     _currentAngle = _sensor.getCumulativePosition() * SensorAS5600::RAW_TO_DEG;
     const auto motorPower = _pid.calculate(_currentAngle);
@@ -35,5 +36,5 @@ void MotorLinkage::update(const double degrees) {
 }
 
 double MotorLinkage::getDegrees() const {
-    return _currentAngle;
+    return _currentAngle / _gearing;
 }

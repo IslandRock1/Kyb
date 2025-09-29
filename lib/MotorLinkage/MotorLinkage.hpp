@@ -36,6 +36,7 @@ private:
     SensorAS5600 _sensor;
 
     double _currentAngle = 0.0;
+    double _gearing = 0.0;
 };
 
 
