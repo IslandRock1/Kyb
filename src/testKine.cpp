@@ -3,11 +3,34 @@
 //
 #include <WiFi.h>
 #include <ESPUI.h>
-#include "SerialControl.hpp"
+
+#include "Config.hpp"
+#include "MotorLinkage.hpp"
 #include "../ControlCode/internetPassword.hpp"
 
-// Reference your robot controller
-SerialControl serial_control;
+LinkageConfigPins pinsWrist = {
+    MOTOR0_PWM_PIN,
+    MOTOR0_IN1_PIN,
+    MOTOR0_IN2_PIN,
+    PWM_CHANNEL0,
+    4.4,
+
+    2.5, 0, 0.01,
+    I2C_SDA0_PIN, I2C_SCL0_PIN, I2C_BUSNUM0
+};
+MotorLinkage motorLinkageWrist{pinsWrist};
+
+LinkageConfigPins pinsShoulder = {
+    MOTOR1_PWM_PIN,
+    MOTOR1_IN1_PIN,
+    MOTOR1_IN2_PIN,
+    PWM_CHANNEL1,
+    -1.0,
+
+    2.5, 0, 0.01,
+    I2C_SDA1_PIN, I2C_SCL1_PIN, I2C_BUSNUM1
+};
+MotorLinkage motorLinkageShoulder{pinsShoulder};
 
 // Tab/control IDs
 uint16_t tabMain, tabAdvanced;
@@ -15,31 +38,34 @@ uint16_t panelShoulder, panelWrist;
 uint16_t sliderShoulder, numberShoulder, sliderWrist, numberWrist;
 uint16_t labelShoulderActual, labelWristActual;
 
+double angleShoulder = 0;;
+double angleWrist = 0.0;;
+
 void sliderShoulderCb(Control *sender, int type, void* userParam) {
     if(type == SL_VALUE) {
         int v = sender->value.toInt();
-        serial_control.inputData.targetPosition1 = v;
+        angleShoulder = static_cast<double>(v);
         ESPUI.updateNumber(numberShoulder, v);
     }
 }
 void numberShoulderCb(Control *sender, int type, void* userParam) {
     if(type == N_VALUE) {
         int v = sender->value.toInt();
-        serial_control.inputData.targetPosition1 = v;
+        angleShoulder = static_cast<double>(v);
         ESPUI.updateSlider(sliderShoulder, v);
     }
 }
 void sliderWristCb(Control *sender, int type, void* userParam) {
     if(type == SL_VALUE) {
         int v = sender->value.toInt();
-        serial_control.inputData.targetPosition0 = v;
+        angleWrist = static_cast<double>(v);
         ESPUI.updateNumber(numberWrist, v);
     }
 }
 void numberWristCb(Control *sender, int type, void* userParam) {
     if(type == N_VALUE) {
         int v = sender->value.toInt();
-        serial_control.inputData.targetPosition0 = v;
+        angleWrist = static_cast<double>(v);
         ESPUI.updateSlider(sliderWrist, v);
     }
 }
@@ -80,10 +106,17 @@ void setup() {
     ESPUI.label("System Status", ControlColor::Sunflower, "Ready");
 
     ESPUI.begin("2DOF Robot Arm ESPUI");
+
+    motorLinkageWrist.begin();
+    motorLinkageShoulder.begin();
 }
 
 void loop() {
-    ESPUI.updateLabel(labelShoulderActual, String(serial_control.outputData.currentPosition1, 1) + " deg");
-    ESPUI.updateLabel(labelWristActual, String(serial_control.outputData.currentPosition0, 1) + " deg");
-    delay(200);
+    ESPUI.updateLabel(labelShoulderActual, String(motorLinkageShoulder.getDegrees(), 1) + " deg");
+    ESPUI.updateLabel(labelWristActual, String(motorLinkageWrist.getDegrees(), 1) + " deg");
+    // delay(200);
+
+    motorLinkageWrist.update(angleWrist);
+    motorLinkageShoulder.update(angleShoulder);
+
 }
