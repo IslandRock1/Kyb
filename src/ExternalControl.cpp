@@ -40,9 +40,23 @@ void setup() {
 
 void loop() {
     serial_control.update();
-    motorLinkageWrist.update(serial_control.inputData.targetPosition0);
-    motorLinkageShoulder.update(serial_control.inputData.targetPosition1);
 
-    serial_control.outputData.currentPosition0 = motorLinkageWrist.getDegrees();
-    serial_control.outputData.currentPosition1 = motorLinkageShoulder.getDegrees();
+    if (serial_control.inputData.positionMode0) {
+        motorLinkageWrist.updatePosition(serial_control.inputData.position0);
+
+    } else {
+        motorLinkageWrist.updatePower(serial_control.inputData.power0);
+    }
+
+    if (serial_control.inputData.positionMode1) {
+        motorLinkageShoulder.updatePosition(serial_control.inputData.position1);
+    } else {
+        motorLinkageShoulder.updatePower(serial_control.inputData.power1);
+    }
+
+    serial_control.outputData.position0 = motorLinkageWrist.getDegrees();
+    serial_control.outputData.power0 = motorLinkageWrist.getPower();
+
+    serial_control.outputData.position1 = motorLinkageShoulder.getDegrees();
+    serial_control.outputData.power1 = motorLinkageShoulder.getPower();
 }

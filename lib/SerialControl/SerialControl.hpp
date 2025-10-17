@@ -4,14 +4,15 @@
 
 #include <Arduino.h>
 
-struct InputData {
-    double targetPosition0;
-    double targetPosition1;
-};
+struct SerialData {
+    double position0;
+    double position1;
 
-struct OutputData {
-    double currentPosition0;
-    double currentPosition1;
+    int power0;
+    int power1;
+
+    bool positionMode0;
+    bool positionMode1;
 };
 
 class SerialControl {
@@ -19,8 +20,8 @@ public:
     SerialControl();
 
     void update();
-    InputData inputData;
-    OutputData outputData;
+    SerialData inputData;
+    SerialData outputData;
 
 private:
     void parseDATA(const String &input);

@@ -26,8 +26,10 @@ class MotorLinkage {
 public:
     MotorLinkage(const LinkageConfigPins &pins);
     void begin();
-    void update(double degrees);
+    void updatePosition(double degrees);
+    void updatePower(int power);
 
+    int getPower() const;
     double getDegrees() const;
 
 private:
@@ -37,6 +39,7 @@ private:
 
     double _currentAngle = 0.0;
     double _gearing = 0.0;
+    int _power = 0;
 };
 
 

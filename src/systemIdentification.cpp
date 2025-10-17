@@ -1,12 +1,10 @@
 #include <Arduino.h>
 
-#include "PID.hpp"
 #include "DCMotor.hpp"
 #include "SensorAS5600.hpp"
 #include "Config.hpp"
 
 DCMotor motor{MOTOR0_PWM_PIN, MOTOR0_IN1_PIN, MOTOR0_IN2_PIN, PWM_CHANNEL0};
-PID controller{2.5, 0.0, 0.0}; // Kp 2.5
 SensorAS5600 sensor{I2C_SDA0_PIN, I2C_SCL0_PIN, 0};
 
 auto null_time_signal = millis();
@@ -40,6 +38,7 @@ int get_motor_power() {
     auto dt = millis() - null_time_signal;
     int base_time = 1000;
     int offset_time = 1000;
+    int ending_time = 3000;
 
     double partitions = 10.0;
     for (int i = 0; i < (partitions + 1); i++) {
@@ -48,8 +47,12 @@ int get_motor_power() {
         }
     }
 
+    if (millis() - null_time_signal < (base_time + offset_time * partitions + ending_time)) {
+        return 255;
+    }
 
-    return 255; // motor ready, start
+    ready_received = false;
+    return 0; // motor ready, start
 }
 
 void setup() {
@@ -58,7 +61,6 @@ void setup() {
 
     sensor.begin();
     motor.begin();
-    controller.setTarget(0.0);
 
     sensor.resetCumulativePosition();
 }
@@ -69,15 +71,12 @@ void loop() {
     auto motorPower = get_motor_power();
     motor.move(motorPower);
 
-    if (micros() - prev_print_time > 100000) {
-        prev_print_time = micros();
 
-        // Utskrift for komunikasjon med pc
-        Serial.print(currentAngle_steps);
-        Serial.print(",");
-        Serial.print(motorPower / 255.0, 6);
-        Serial.print(",");
-        Serial.println(micros());
-    }
+    // Utskrift for komunikasjon med pc
+    Serial.print(currentAngle_steps);
+    Serial.print(",");
+    Serial.print(motorPower / 255.0, 6);
+    Serial.print(",");
+    Serial.println(micros());
 }
 
