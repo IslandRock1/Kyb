@@ -25,3 +25,4 @@ def calculateCenterOfMass():
 
 centerOfMass = calculateCenterOfMass()
 print(f"Centre of mass is {centerOfMass:.5f} meters from four-stroke sensor, or {centerOfMass * 100:.2f} cm.")
+print(f"With modified weight (battery), the center of mass is 6cm from the sensor, with a weight of 0.527 kg.")
