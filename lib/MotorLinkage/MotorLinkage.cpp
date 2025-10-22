@@ -27,14 +27,26 @@ void MotorLinkage::begin() {
     _motor.begin();
 }
 
-void MotorLinkage::update(const double degrees) {
+void MotorLinkage::updatePosition(const double degrees) {
     _pid.setTarget(degrees * _gearing);
 
     _currentAngle = _sensor.getCumulativePosition() * SensorAS5600::RAW_TO_DEG;
-    const auto motorPower = _pid.calculate(_currentAngle);
-    _motor.move(static_cast<int>(motorPower));
+    _power = _pid.calculate(_currentAngle);
+    _motor.move(_power);
 }
+
+void MotorLinkage::updatePower(int power) {
+    _currentAngle = _sensor.getCumulativePosition() * SensorAS5600::RAW_TO_DEG;
+    _power = power;
+    _motor.move(power);
+}
+
 
 double MotorLinkage::getDegrees() const {
     return _currentAngle / _gearing;
 }
+
+int MotorLinkage::getPower() const {
+    return _power;
+}
+

@@ -13,26 +13,35 @@ void SerialControl::update() {
 }
 
 void SerialControl::parseDATA(const String &input) {
-    std::vector<double> values;
+    std::vector<String> tokens;
     int start = 0;
     int end = input.indexOf(',');
 
     while (end != -1) {
-        values.push_back(input.substring(start, end).toDouble());
+        tokens.push_back(input.substring(start, end));
         start = end + 1;
         end = input.indexOf(',', start);
     }
 
-    // last number
+    // last token
     if (start < input.length()) {
-        values.push_back(input.substring(start).toDouble());
+        tokens.push_back(input.substring(start));
     }
 
-    if (!values.empty()) {
-        inputData.targetPosition0 = values[0];
-        inputData.targetPosition1 = values[1];
+    if (tokens.size() == 6) {
+        inputData.position0 = tokens[0].toDouble();
+        inputData.position1 = tokens[1].toDouble();
+
+        inputData.power0 = tokens[2].toInt();
+        inputData.power1 = tokens[3].toInt();
+
+        inputData.positionMode0 = tokens[4].toInt() != 0;
+        inputData.positionMode1 = tokens[5].toInt() != 0;
+    } else {
+        Serial.println("ERROR");
     }
 }
+
 
 void SerialControl::readData() {
     if (Serial.available()) {
@@ -43,8 +52,16 @@ void SerialControl::readData() {
 
 void SerialControl::sendData() {
     String out;
-    out += outputData.currentPosition0;
+    out += outputData.position0;
     out += ",";
-    out += outputData.currentPosition1;
+    out += outputData.position1;
+    out += ",";
+    out += outputData.power0;
+    out += ",";
+    out += outputData.power1;
+    out += ",";
+    out += outputData.positionMode0;
+    out += ",";
+    out += outputData.positionMode1;
     Serial.println(out);
 }
