@@ -23,6 +23,9 @@ def calculateCenterOfMass():
 
     return (t0 + t1 + t2) / (mass_disk + mass_cylinder + mass_weight)
 
+def batteryCenterOfMass():
+    return 0.06, 0.527
+
 centerOfMass = calculateCenterOfMass()
 print(f"Centre of mass is {centerOfMass:.5f} meters from four-stroke sensor, or {centerOfMass * 100:.2f} cm.")
 print(f"With modified weight (battery), the center of mass is 6cm from the sensor, with a weight of 0.527 kg.")

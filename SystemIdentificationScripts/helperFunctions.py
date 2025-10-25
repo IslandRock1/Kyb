@@ -1,4 +1,8 @@
 
+from dataclasses import dataclass
+import numpy as np
+
+
 def logg_data(path: str, items: list[list]) -> None:
     """
 
@@ -12,3 +16,59 @@ def logg_data(path: str, items: list[list]) -> None:
     with open(path, "a") as logg:
         for (a, v, t) in zip(*items):
             logg.write(f"{a},{v},{t}\n")
+
+@dataclass
+class EncoderData:
+    timepoint:      float
+    wrist_angle:    float
+    shoulder_angle: float
+    wrist_power:    float
+    shoulder_power: float
+
+@dataclass
+class SensorData:
+    timepoint:        float
+    sensorValues: list[int]
+
+def getData():
+    encoderData: list[EncoderData] = []
+    sensorData: list[SensorData] = []
+
+    with open("SystemidentificationScripts/response.txt", "r") as file:
+        for line in file:
+            timepoint, source, *readings = line[0:-1].split(",")
+            if (source == "ROBOT"):
+                wrist_angle, shoulder_angle, wrist_power, shoulder_power = [float(x) for x in readings][0:4]
+                encData = EncoderData(float(timepoint), wrist_angle, shoulder_angle, wrist_power, shoulder_power)
+                encoderData.append(encData)
+            elif (source == "FORCE"):
+                readings: list[str] = readings[0].split(" ")[3:]
+                num = readings.count("")
+                for _ in range(num): readings.remove("")
+
+                sensData = SensorData(float(timepoint), [int(x) for x in readings[-8:]])
+                sensorData.append(sensData)
+    return encoderData, sensorData
+
+def Rx(theta):
+    return np.array([
+        [1, 0, 0],
+        [0, np.cos(theta), -np.sin(theta)],
+        [0, np.sin(theta), np.cos(theta)]
+    ])
+
+def Ry(theta):
+    return np.array([
+        [np.cos(theta), 0, np.sin(theta)],
+        [0, 1, 0],
+        [-np.sin(theta), 0, np.cos(theta)],
+    ])
+
+def SensorToWorld(theta_shoulder, theta_wrist):
+    return Ry(theta_wrist) @ Rx(theta_shoulder)
+
+def getForceVector(mass, Rsw):
+    return np.linalg.inv(Rsw) @ np.matrix([[0], [0], [-mass * 9.81]])
+
+def getMassVector(rs, forceVector):
+    return np.linalg.cross(rs.flatten(), forceVector.flatten())

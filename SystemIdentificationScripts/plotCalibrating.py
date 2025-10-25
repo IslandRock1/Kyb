@@ -1,40 +1,6 @@
 
-from dataclasses import dataclass
 import matplotlib.pyplot as plt
-
-@dataclass
-class EncoderData:
-    timepoint:      float
-    wrist_angle:    float
-    shoulder_angle: float
-    wrist_power:    float
-    shoulder_power: float
-
-@dataclass
-class SensorData:
-    timepoint:        float
-    sensorValues: list[int]
-
-
-def getData():
-    encoderData: list[EncoderData] = []
-    sensorData: list[SensorData] = []
-
-    with open("SystemidentificationScripts/response.txt", "r") as file:
-        for line in file:
-            timepoint, source, *readings = line[0:-1].split(",")
-            if (source == "ROBOT"):
-                wrist_angle, shoulder_angle, wrist_power, shoulder_power = [float(x) for x in readings][0:4]
-                encData = EncoderData(float(timepoint), wrist_angle, shoulder_angle, wrist_power, shoulder_power)
-                encoderData.append(encData)
-            elif (source == "FORCE"):
-                readings: list[str] = readings[0].split(" ")[3:]
-                num = readings.count("")
-                for _ in range(num): readings.remove("")
-
-                sensData = SensorData(float(timepoint), [int(x) for x in readings[-8:]])
-                sensorData.append(sensData)
-    return encoderData, sensorData
+from helperFunctions import SensorData, EncoderData, getData
 
 def plotSensorData(sensorData: list[SensorData]):
     x_values = [x.timepoint - sensorData[0].timepoint for x in sensorData]
