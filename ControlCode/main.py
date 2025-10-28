@@ -13,6 +13,8 @@ class SerialData:
     positionMode0: bool
     positionMode1: bool
 
+def rgb_to_hex(r, g, b):
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 class ESP32ControlApp:
     def __init__(self, port, baudrate, portSensor, baudrateSensor):
@@ -39,11 +41,27 @@ class ESP32ControlApp:
         self.create_joint_controls("Wrist", 0)
         self.create_joint_controls("Shoulder", 1)
 
+        self.record_button = tk.Button(self.root, text="Record", fg="white", bg="red", font=("Arial", 14, "bold"),
+                                command=self.activate_recording)
+        self.record_button.pack(pady=10)
+        self.recording_time = perf_counter() - 1.0
+
         # Start background thread for serial reading
         threading.Thread(target=self.read_serial, daemon=True).start()
 
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.updateButtonColor()
+
+    def updateButtonColor(self):
+
+        remainingTime = 1 + self.recording_time - perf_counter()
+        if (remainingTime < 0):
+            self.record_button.config(bg = rgb_to_hex(0, 255, 0))
+        else:
+            self.record_button.config(bg = rgb_to_hex(int(255.0 * remainingTime), 0, 0))
+
+        self.root.after(10, self.updateButtonColor)
 
     # -----------------------------
     # UI Creation
@@ -110,7 +128,8 @@ class ESP32ControlApp:
         while self.running:
             if self.ser.in_waiting:
                 line = self.ser.readline().decode(errors="ignore").strip()
-                self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
+                if (perf_counter() - self.recording_time) < 1.0:
+                    self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
                 if line:
                     formatted = self.format_response(line)
                     if formatted:
@@ -120,7 +139,8 @@ class ESP32ControlApp:
                 if self.serSensor.in_waiting:
                     line = self.serSensor.readline().decode(errors="ignore").strip()
                     print(line)
-                    self.responses.append(f"{perf_counter()},FORCE,{line}\n")
+                    if (perf_counter() - self.recording_time) < 1.0:
+                        self.responses.append(f"{perf_counter()},FORCE,{line}\n")
             except Exception as e:
                 print(e)
                 self.running = False
@@ -162,6 +182,9 @@ class ESP32ControlApp:
         except ValueError:
             pass
 
+    def activate_recording(self):
+        self.recording_time = perf_counter()
+
     # -----------------------------
     # Helpers
     # -----------------------------
@@ -196,5 +219,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM6", baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM7", baudrateSensor=115200)
     app.run()

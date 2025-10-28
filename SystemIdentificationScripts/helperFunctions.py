@@ -67,6 +67,19 @@ def Ry(theta):
 def SensorToWorld(theta_shoulder, theta_wrist):
     return Ry(theta_wrist) @ Rx(theta_shoulder)
 
+def SensorToWorldFromSlides(theta_shoulder, theta_wrist):
+    t1 = theta_shoulder
+    t2 = theta_wrist
+
+    sin = np.sin
+    cos = np.cos
+
+    return np.matrix([
+        [-sin(t2), -cos(t2), 0],
+        [sin(t1) * cos(t2), -sin(t1) * sin(t2), cos(t1)],
+        [-cos(t1) * cos(t2), cos(t1) * sin(t2), sin(t1)],
+    ])
+
 def getForceVector(mass, Rsw):
     return np.linalg.inv(Rsw) @ np.matrix([[0], [0], [-mass * 9.81]])
 
