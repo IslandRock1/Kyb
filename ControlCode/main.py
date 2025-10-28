@@ -20,7 +20,13 @@ class ESP32ControlApp:
     def __init__(self, port, baudrate, portSensor, baudrateSensor):
         # --- Serial setup ---
         self.ser = serial.Serial(port, baudrate, timeout=0.1)
-        self.serSensor = serial.Serial(portSensor, baudrateSensor, timeout=0.1)
+
+        self.serSensor = None
+        if (portSensor is not None):
+            try:
+                self.serSensor = serial.Serial(portSensor, baudrateSensor, timeout=0.1)
+            except Exception as e:
+                self.serSensor = None
         self.running = True
 
         self.responses = []
@@ -55,11 +61,11 @@ class ESP32ControlApp:
 
     def updateButtonColor(self):
 
-        remainingTime = 1 + self.recording_time - perf_counter()
+        remainingTime = 5 + self.recording_time - perf_counter()
         if (remainingTime < 0):
             self.record_button.config(bg = rgb_to_hex(0, 255, 0))
         else:
-            self.record_button.config(bg = rgb_to_hex(int(255.0 * remainingTime), 0, 0))
+            self.record_button.config(bg = rgb_to_hex(int(255.0 * remainingTime / 5.0), 0, 0))
 
         self.root.after(10, self.updateButtonColor)
 
@@ -128,22 +134,23 @@ class ESP32ControlApp:
         while self.running:
             if self.ser.in_waiting:
                 line = self.ser.readline().decode(errors="ignore").strip()
-                if (perf_counter() - self.recording_time) < 1.0:
+                if (perf_counter() - self.recording_time) < 5.0:
                     self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
                 if line:
                     formatted = self.format_response(line)
                     if formatted:
                         self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
 
-            try:
-                if self.serSensor.in_waiting:
-                    line = self.serSensor.readline().decode(errors="ignore").strip()
-                    print(line)
-                    if (perf_counter() - self.recording_time) < 1.0:
-                        self.responses.append(f"{perf_counter()},FORCE,{line}\n")
-            except Exception as e:
-                print(e)
-                self.running = False
+            if (self.serSensor is not None):
+                try:
+                    if self.serSensor.in_waiting:
+                        line = self.serSensor.readline().decode(errors="ignore").strip()
+                        print(line)
+                        if (perf_counter() - self.recording_time) < 5.0:
+                            self.responses.append(f"{perf_counter()},FORCE,{line}\n")
+                except Exception as e:
+                    print(e)
+                    self.running = False
 
     # -----------------------------
     # Slider & Entry Callbacks
@@ -203,7 +210,7 @@ class ESP32ControlApp:
         self.running = False
         if self.ser.is_open:
             self.ser.close()
-        if self.serSensor.is_open:
+        if (self.serSensor is not None) and self.serSensor.is_open:
             self.serSensor.close()
         self.root.destroy()
 
