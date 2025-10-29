@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import  perf_counter
 import numpy as np
 
-from helperFunctions import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ
+from helperFunctions import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ, formatForceLabel
 from CalculateCenterOfMass import batteryCenterOfMass
 
 @dataclass
@@ -79,6 +79,7 @@ class ESP32ControlApp:
         self.currentForceValues = []
         self.currentAngleValues = []
         self.timeToUpdateAngles = False
+        setattr(self, f"timeToUpdateAngles", self.timeToUpdateAngles)
 
     def updateButtonColor(self):
 
@@ -146,10 +147,11 @@ class ESP32ControlApp:
             f"{self.serialData.power0},{self.serialData.power1},"
             f"{int(self.serialData.positionMode0)},{int(self.serialData.positionMode1)},{int(self.doResetAngles)}\n"
         )
+        self.doResetAngles = False
 
         if (self.ser is not None):
             self.ser.write(msg.encode("utf-8"))
-        #print(f"Sent {msg}")
+            # print(f"Sent {msg}")
 
     def updateForceLabel(self):
         mass, dist = batteryCenterOfMass()
@@ -159,9 +161,22 @@ class ESP32ControlApp:
             forceVector = getForceVector(mass, Rsw).flatten()
             massVector = getMassVector(np.matrix([[0], [0], [dist]]), forceVector).flatten()
 
+            #print(f"ForceShape: {forceVector.flatten().shape}")
+            #print(f"MassShape: {massVector.flatten().shape}")
+            #print(f"Force: {forceVector.flatten()}")
+            #print(f"Mass: {massVector.flatten()}")
+            forceMass = np.matrix([
+                [forceVector[0,0]],
+                [forceVector[0,1]],
+                [forceVector[0,2]],
+                [massVector[0]],
+                [massVector[1]],
+                [massVector[2]]])
+            #print(f"Forcemass: {forceMass}")
+
             # West = C + LS + QS^2
             C, L, Q = getCLQ()
-            S = np.matrix(self.currentForceValues)
+            S = np.matrix(self.currentForceValues).T
 
             # Begin ChatGPT code
             # Ehm, the paper says S^2, but as that is a vector, they mean
@@ -169,15 +184,31 @@ class ESP32ControlApp:
             # I think this might be correct..
             n = S.size
 
-            outer = np.outer(S, S)             # shape (8,8), outer[i,j] = S[i]*S[j]
-            idx = np.triu_indices(n)           # indices for i<=j (upper triangular incl. diag)
-            result = outer[idx]                # 1-D array of length n*(n+1)//2
+            outer = np.outer(S, S)               # shape (8,8), outer[i,j] = S[i]*S[j]
+            idx = np.triu_indices(n)             # indices for i<=j (upper triangular incl. diag)
+            result = outer[idx].reshape(-1, 1)   # 1-D array of length n*(n+1)//2
             # End ChatGPT code
 
-            print(f"Shape of S^2: {result.shape}")
-            West = C + L @ S + Q @ result
+            t0 = Q @ result
+            t1 = L @ S
+            t2 = C
 
-            self.forceLabel.config(text=f"Force: {self.currentForceValues} | {self.currentAngleValues} => F, M = {forceVector}, {massVector} | W_est = {West}")
+            #print("here")
+            #print(t0.shape)
+            #print(t1.shape)
+            #print(t2.shape)
+
+            #print(f"Result: {result.shape}")
+            #print(f"Q: {Q.shape}")
+            #print(f"S: {S.shape}")
+            #print(f"L: {L.shape}")
+
+            West = C + L @ S + Q @ result
+            #print(f"WestShape: {West.shape}")
+            #print(f"FMShape: {forceMass.shape}")
+            West -= forceMass
+
+            self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x) for x in West])}")
 
     def read_serial(self):
         """Read responses from ESP32 in background"""
