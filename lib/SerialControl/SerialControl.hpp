@@ -13,6 +13,7 @@ struct SerialData {
 
     bool positionMode0;
     bool positionMode1;
+    bool doResetPosition;
 };
 
 class SerialControl {

@@ -29,6 +29,8 @@ public:
     void updatePosition(double degrees);
     void updatePower(int power);
 
+    void setZeroPosition();
+
     int getPower() const;
     double getDegrees() const;
 

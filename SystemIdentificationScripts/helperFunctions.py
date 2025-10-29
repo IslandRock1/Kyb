@@ -85,3 +85,28 @@ def getForceVector(mass, Rsw):
 
 def getMassVector(rs, forceVector):
     return np.linalg.cross(rs.flatten(), forceVector.flatten())
+
+def getCLQ():
+
+    C = np.matrix([
+        -20.7056352,
+        -10.94682257,
+        -85.75310466,
+        0.666177612,
+        -1.124525726,
+        0
+    ], dtype=np.float64)
+
+    L = np.matrix([
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ], dtype=np.float64)
+
+    Q = np.matrix([])
+
+    return C, L, Q
+

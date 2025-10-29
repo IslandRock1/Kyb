@@ -54,6 +54,14 @@ void loop() {
         motorLinkageShoulder.updatePower(serial_control.inputData.power1);
     }
 
+    if (serial_control.inputData.doResetPosition) {
+        motorLinkageShoulder.setZeroPosition();
+        motorLinkageWrist.setZeroPosition();
+
+        motorLinkageShoulder.updatePosition(0.0);
+        motorLinkageWrist.updatePosition(0.0);
+    }
+
     serial_control.outputData.position0 = motorLinkageWrist.getDegrees();
     serial_control.outputData.power0 = motorLinkageWrist.getPower();
 

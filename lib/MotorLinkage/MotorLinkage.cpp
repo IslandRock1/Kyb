@@ -41,6 +41,10 @@ void MotorLinkage::updatePower(int power) {
     _motor.move(power);
 }
 
+void MotorLinkage::setZeroPosition() {
+    _sensor.resetCumulativePosition();
+}
+
 
 double MotorLinkage::getDegrees() const {
     return _currentAngle / _gearing;

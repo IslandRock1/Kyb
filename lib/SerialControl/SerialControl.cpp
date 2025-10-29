@@ -28,7 +28,7 @@ void SerialControl::parseDATA(const String &input) {
         tokens.push_back(input.substring(start));
     }
 
-    if (tokens.size() == 6) {
+    if (tokens.size() == 7) {
         inputData.position0 = tokens[0].toDouble();
         inputData.position1 = tokens[1].toDouble();
 
@@ -37,6 +37,7 @@ void SerialControl::parseDATA(const String &input) {
 
         inputData.positionMode0 = tokens[4].toInt() != 0;
         inputData.positionMode1 = tokens[5].toInt() != 0;
+        inputData.doResetPosition = tokens[6].toInt() != 0;
     } else {
         Serial.println("ERROR");
     }

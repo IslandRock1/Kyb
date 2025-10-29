@@ -3,6 +3,10 @@ import serial
 import threading
 from dataclasses import dataclass
 from time import  perf_counter
+import numpy as np
+
+from helperFunctions import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ
+from CalculateCenterOfMass import batteryCenterOfMass
 
 @dataclass
 class SerialData:
@@ -19,14 +23,20 @@ def rgb_to_hex(r, g, b):
 class ESP32ControlApp:
     def __init__(self, port, baudrate, portSensor, baudrateSensor):
         # --- Serial setup ---
-        self.ser = serial.Serial(port, baudrate, timeout=0.1)
+
+        self.ser = None
+        if (port is not None):
+            try:
+                self.ser = serial.Serial(port, baudrate, timeout=0.1)
+            except Exception as e:
+                pass
 
         self.serSensor = None
         if (portSensor is not None):
             try:
                 self.serSensor = serial.Serial(portSensor, baudrateSensor, timeout=0.1)
             except Exception as e:
-                self.serSensor = None
+                pass
         self.running = True
 
         self.responses = []
@@ -43,6 +53,9 @@ class ESP32ControlApp:
         self.response_label = tk.Label(self.root, text="ESP32 Response: ---", font=("Consolas", 10))
         self.response_label.pack(pady=10)
 
+        self.forceLabel = tk.Label(self.root, text="Force: ---", font=("Consolas", 10))
+        self.forceLabel.pack(pady=10)
+
         # Create controls
         self.create_joint_controls("Wrist", 0)
         self.create_joint_controls("Shoulder", 1)
@@ -50,7 +63,11 @@ class ESP32ControlApp:
         self.record_button = tk.Button(self.root, text="Record", fg="white", bg="red", font=("Arial", 14, "bold"),
                                 command=self.activate_recording)
         self.record_button.pack(pady=10)
-        self.recording_time = perf_counter() - 1.0
+        self.recording_time = perf_counter() - 5.0
+
+        self.resetAngles = tk.Button(self.root, text = "Set initial angles.", fg = "white", bg = "black", font=("Arial", 14, "bold"),command=self.resetAnglesCommand)
+        self.resetAngles.pack(pady=10)
+        self.doResetAngles = False
 
         # Start background thread for serial reading
         threading.Thread(target=self.read_serial, daemon=True).start()
@@ -58,6 +75,10 @@ class ESP32ControlApp:
         # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.updateButtonColor()
+
+        self.currentForceValues = []
+        self.currentAngleValues = []
+        self.timeToUpdateAngles = False
 
     def updateButtonColor(self):
 
@@ -123,34 +144,82 @@ class ESP32ControlApp:
         msg = (
             f"{self.serialData.position0},{self.serialData.position1},"
             f"{self.serialData.power0},{self.serialData.power1},"
-            f"{int(self.serialData.positionMode0)},{int(self.serialData.positionMode1)}\n"
+            f"{int(self.serialData.positionMode0)},{int(self.serialData.positionMode1)},{int(self.doResetAngles)}\n"
         )
-        self.ser.write(msg.encode("utf-8"))
+
+        if (self.ser is not None):
+            self.ser.write(msg.encode("utf-8"))
         #print(f"Sent {msg}")
+
+    def updateForceLabel(self):
+        mass, dist = batteryCenterOfMass()
+
+        if (len(self.currentForceValues) != 0) and (len(self.currentAngleValues) != 0):
+            Rsw = SensorToWorldFromSlides(self.currentAngleValues[0], self.currentAngleValues[1])
+            forceVector = getForceVector(mass, Rsw).flatten()
+            massVector = getMassVector(np.matrix([[0], [0], [dist]]), forceVector).flatten()
+
+            # West = C + LS + QS^2
+            C, L, Q = getCLQ()
+            S = np.matrix(self.currentForceValues)
+
+            # Begin ChatGPT code
+            # Ehm, the paper says S^2, but as that is a vector, they mean
+            # like the upper triangle of the multiplication.
+            # I think this might be correct..
+            n = S.size
+
+            outer = np.outer(S, S)             # shape (8,8), outer[i,j] = S[i]*S[j]
+            idx = np.triu_indices(n)           # indices for i<=j (upper triangular incl. diag)
+            result = outer[idx]                # 1-D array of length n*(n+1)//2
+            # End ChatGPT code
+
+            print(f"Shape of S^2: {result.shape}")
+            West = C + L @ S + Q @ result
+
+            self.forceLabel.config(text=f"Force: {self.currentForceValues} | {self.currentAngleValues} => F, M = {forceVector}, {massVector} | W_est = {West}")
 
     def read_serial(self):
         """Read responses from ESP32 in background"""
 
         while self.running:
-            if self.ser.in_waiting:
-                line = self.ser.readline().decode(errors="ignore").strip()
-                if (perf_counter() - self.recording_time) < 5.0:
-                    self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
-                if line:
-                    formatted = self.format_response(line)
-                    if formatted:
-                        self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
-
             if (self.serSensor is not None):
                 try:
                     if self.serSensor.in_waiting:
                         line = self.serSensor.readline().decode(errors="ignore").strip()
+                        self.timeToUpdateAngles = True
+
+                        readings: list[str] = line.split(" ")[3:]
+                        num = readings.count("")
+                        for _ in range(num): readings.remove("")
+
+                        self.currentForceValues = [int(x) for x in readings[-8:]]
+
                         print(line)
                         if (perf_counter() - self.recording_time) < 5.0:
                             self.responses.append(f"{perf_counter()},FORCE,{line}\n")
                 except Exception as e:
                     print(e)
-                    self.running = False
+
+            if (self.ser is not None):
+                try:
+                    if self.ser.in_waiting:
+                        line = self.ser.readline().decode(errors="ignore").strip()
+
+                        if (self.timeToUpdateAngles):
+                            self.timeToUpdateAngles = False
+                            self.currentAngleValues = [float(x) for x in line.split(",")][0:4]
+
+                        if (perf_counter() - self.recording_time) < 5.0:
+                            self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
+                        if line:
+                            formatted = self.format_response(line)
+                            if formatted:
+                                self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
+                except Exception as e:
+                    print(e)
+
+            self.root.after(0, self.updateForceLabel)
 
     # -----------------------------
     # Slider & Entry Callbacks
@@ -192,6 +261,9 @@ class ESP32ControlApp:
     def activate_recording(self):
         self.recording_time = perf_counter()
 
+    def resetAnglesCommand(self):
+        self.doResetAngles = True
+
     # -----------------------------
     # Helpers
     # -----------------------------
@@ -208,16 +280,19 @@ class ESP32ControlApp:
     def on_close(self):
         """Close the app cleanly"""
         self.running = False
-        if self.ser.is_open:
+        if (self.ser is not None) and self.ser.is_open:
             self.ser.close()
         if (self.serSensor is not None) and self.serSensor.is_open:
             self.serSensor.close()
         self.root.destroy()
 
-        print("Saving to file..")
-        with open("response.txt", "w") as f:
-            f.writelines(self.responses)
-        print("Finished saving to file.")
+        if (len(self.responses) > 0):
+            print("Saving to file..")
+            with open("../response.txt", "w") as f:
+                f.writelines(self.responses)
+            print("Finished saving to file.")
+        else:
+            print("No results to save.")
 
     def run(self):
         self.root.mainloop()
