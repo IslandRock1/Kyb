@@ -56,6 +56,9 @@ class ESP32ControlApp:
         self.forceLabel = tk.Label(self.root, text="Force: ---", font=("Consolas", 10))
         self.forceLabel.pack(pady=10)
 
+        self.filteredLabel = tk.Label(self.root, text="Filtered: ---", font=("Consolas", 10))
+        self.filteredLabel.pack(pady=10)
+
         # Create controls
         self.create_joint_controls("Wrist", 0)
         self.create_joint_controls("Shoulder", 1)
@@ -79,6 +82,8 @@ class ESP32ControlApp:
         self.currentForceValues = []
         self.currentAngleValues = []
         self.timeToUpdateAngles = False
+        self.forceLabelValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.alpha = 0.01
         setattr(self, f"timeToUpdateAngles", self.timeToUpdateAngles)
 
     def updateButtonColor(self):
@@ -208,7 +213,12 @@ class ESP32ControlApp:
             #print(f"FMShape: {forceMass.shape}")
             West -= forceMass
 
+            out = [float(formatForceLabel(x)) for x in West]
+            newOut = [self.forceLabelValues[i] * (1 - self.alpha) + out[i] * self.alpha for i in range(6)]
+            self.forceLabelValues = newOut
             self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x) for x in West])}")
+
+            self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")
 
     def read_serial(self):
         """Read responses from ESP32 in background"""
