@@ -329,7 +329,7 @@ class ESP32ControlApp:
 
         if (len(self.responses) > 0):
             print("Saving to file..")
-            with open("../response.txt", "w") as f:
+            with open("response.txt", "w") as f:
                 f.writelines(self.responses)
             print("Finished saving to file.")
         else:
@@ -342,5 +342,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM7", baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM4", baudrate=115200, portSensor="COM5", baudrateSensor=115200)
     app.run()
