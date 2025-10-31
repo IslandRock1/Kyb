@@ -28,8 +28,10 @@ class EncoderData:
 
 @dataclass
 class SensorData:
-    timepoint:        float
-    sensorValues: list[int]
+    timepoint    :       float
+    sensorValues :   list[int]
+    weight       :       float
+    centerOfMass : list[float]
 
 def getData():
     encoderData: list[EncoderData] = []
@@ -39,16 +41,19 @@ def getData():
         for line in file:
             timepoint, source, *readings = line[0:-1].split(",")
             if (source == "ROBOT"):
-                print(line)
-                wrist_angle, shoulder_angle, wrist_power, shoulder_power = [float(x) for x in readings][0:4]
-                encData = EncoderData(float(timepoint), wrist_angle, shoulder_angle, wrist_power, shoulder_power)
-                encoderData.append(encData)
+                try:
+                    wrist_angle, shoulder_angle, wrist_power, shoulder_power = [float(x) for x in readings][0:4]
+                    encData = EncoderData(float(timepoint), wrist_angle, shoulder_angle, wrist_power, shoulder_power)
+                    encoderData.append(encData)
+                except: pass
             elif (source == "FORCE"):
                 readings: list[str] = readings[0].split(" ")[3:]
                 num = readings.count("")
                 for _ in range(num): readings.remove("")
 
-                sensData = SensorData(float(timepoint), [int(x) for x in readings[-8:]])
+                # print(readings)
+                sensData = SensorData(float(timepoint), [int(x) for x in readings[-12:-4]], float(readings[-4]), [float(x) for x in readings[-3:]])
+                # print(sensData)
                 sensorData.append(sensData)
     return encoderData, sensorData
 
@@ -96,7 +101,7 @@ def getCLQ():
 
     # This code is taken from Jon's Python scrip "4_validation_quadratic.py"
     n_sensors = 8
-    df = pd.read_csv(f'params_lasso_quadratic.csv')
+    df = pd.read_csv(f'params_linearregression_quadratic.csv')
     C = df[['C']].values # Shape: (6, 1)
     L = df[['L_s0','L_s1','L_s2','L_s3','L_s4','L_s5','L_s6','L_s7']].values # Shape: (6, 8)
     Q_cols = [f'Q_s{i}s{j}' for i in range(n_sensors) for j in range(i, n_sensors)]

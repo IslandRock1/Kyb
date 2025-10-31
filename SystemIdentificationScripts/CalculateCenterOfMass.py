@@ -7,6 +7,8 @@ Using the centre jog, and the cylinder.
 
 """
 
+import numpy as np
+
 mass_disk = 0.000332726
 height_disk = 0.01
 
@@ -23,8 +25,20 @@ def calculateCenterOfMass():
 
     return (t0 + t1 + t2) / (mass_disk + mass_cylinder + mass_weight)
 
-def batteryCenterOfMass():
-    return 0.06, 0.170  # distance to center of mass in meter, weight
+def getCenterOfMass() -> tuple[float, np.matrix]:
+
+    mass = 1.039
+
+    # x/y = 0.029
+    # z = 0.053
+    delta = 0.029
+    COG = np.matrix([
+        [-delta],
+        [delta],
+        [0.053]
+    ])
+
+    return (mass, COG)
 
 centerOfMass = calculateCenterOfMass()
 print(f"Centre of mass is {centerOfMass:.5f} meters from four-stroke sensor, or {centerOfMass * 100:.2f} cm.")

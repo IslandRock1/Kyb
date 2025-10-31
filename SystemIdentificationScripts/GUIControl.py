@@ -6,7 +6,7 @@ from time import  perf_counter
 import numpy as np
 
 from helperFunctions import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ, formatForceLabel
-from CalculateCenterOfMass import batteryCenterOfMass
+from CalculateCenterOfMass import getCenterOfMass
 
 @dataclass
 class SerialData:
@@ -159,17 +159,13 @@ class ESP32ControlApp:
             # print(f"Sent {msg}")
 
     def updateForceLabel(self):
-        mass, dist = batteryCenterOfMass()
+        mass, COG = getCenterOfMass()
 
         if (len(self.currentForceValues) != 0) and (len(self.currentAngleValues) != 0):
             Rsw = SensorToWorldFromSlides(self.currentAngleValues[0], self.currentAngleValues[1])
             forceVector = getForceVector(mass, Rsw).flatten()
-            massVector = getMassVector(np.matrix([[0], [0], [dist]]), forceVector).flatten()
+            massVector = getMassVector(COG, forceVector).flatten()
 
-            #print(f"ForceShape: {forceVector.flatten().shape}")
-            #print(f"MassShape: {massVector.flatten().shape}")
-            #print(f"Force: {forceVector.flatten()}")
-            #print(f"Mass: {massVector.flatten()}")
             forceMass = np.matrix([
                 [forceVector[0,0]],
                 [forceVector[0,1]],
@@ -177,7 +173,6 @@ class ESP32ControlApp:
                 [massVector[0]],
                 [massVector[1]],
                 [massVector[2]]])
-            #print(f"Forcemass: {forceMass}")
 
             # West = C + LS + QS^2
             C, L, Q = getCLQ()
@@ -194,23 +189,7 @@ class ESP32ControlApp:
             result = outer[idx].reshape(-1, 1)   # 1-D array of length n*(n+1)//2
             # End ChatGPT code
 
-            t0 = Q @ result
-            t1 = L @ S
-            t2 = C
-
-            #print("here")
-            #print(t0.shape)
-            #print(t1.shape)
-            #print(t2.shape)
-
-            #print(f"Result: {result.shape}")
-            #print(f"Q: {Q.shape}")
-            #print(f"S: {S.shape}")
-            #print(f"L: {L.shape}")
-
             West = C + L @ S + Q @ result
-            #print(f"WestShape: {West.shape}")
-            #print(f"FMShape: {forceMass.shape}")
             West -= forceMass
 
             out = [float(formatForceLabel(x)) for x in West]
@@ -222,6 +201,8 @@ class ESP32ControlApp:
 
     def read_serial(self):
         """Read responses from ESP32 in background"""
+
+        mass, COG = getCenterOfMass()
 
         while self.running:
             if (self.serSensor is not None):
@@ -238,7 +219,7 @@ class ESP32ControlApp:
 
                         print(line)
                         if (perf_counter() - self.recording_time) < 5.0:
-                            self.responses.append(f"{perf_counter()},FORCE,{line}\n")
+                            self.responses.append(f"{perf_counter()},FORCE,{line} {mass} {COG[0,0]} {COG[1,0]} {COG[2,0]}\n")
                 except Exception as e:
                     print(e)
 
@@ -329,7 +310,7 @@ class ESP32ControlApp:
 
         if (len(self.responses) > 0):
             print("Saving to file..")
-            with open("response.txt", "w") as f:
+            with open("SystemidentificationScripts/response.txt", "a") as f:
                 f.writelines(self.responses)
             print("Finished saving to file.")
         else:
@@ -342,5 +323,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM4", baudrate=115200, portSensor="COM5", baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM7", baudrateSensor=115200)
     app.run()
