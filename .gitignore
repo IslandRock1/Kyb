@@ -1,6 +1,7 @@
 .pio
 .idea
 .venv
+.vscode
 SystemIdentificationScripts/venv
 SystemIdentificationScripts/__pycache__
 SystemIdentificationScripts/data_processed.csv
