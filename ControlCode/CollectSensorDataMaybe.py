@@ -199,7 +199,7 @@ if __name__ == '__main__':
     # Open CSV file once at the start
     filename = 'data.csv'
     csvfile = open(filename, 'a', newline='')
-    fieldnames = ['Timestamp', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz', 's0', 's1', 's2', 's3', 's4', 's5', 's6', 's7']
+    fie1dnames = ['Timestamp', 'Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz', 's0', 's1', 's2', 's3', 's4', 's5', 's6', 's7']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
     # Write header only if file is empty

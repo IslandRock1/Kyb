@@ -28,7 +28,9 @@ class ESP32ControlApp:
         if (port is not None):
             try:
                 self.ser = serial.Serial(port, baudrate, timeout=0.1)
+                print("Got the serial port.")
             except Exception as e:
+                print(f"Error opening serial port: {e}")
                 pass
 
         self.serSensor = None
@@ -323,5 +325,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM7", baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM12", baudrate=115200, portSensor=None, baudrateSensor=115200)
     app.run()
