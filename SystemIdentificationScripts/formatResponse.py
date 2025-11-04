@@ -38,7 +38,7 @@ def main():
 
             forceVector = getForceVector(sensorData.weight, Rsw).flatten()
             massVector = getMassVector(np.matrix([[sensorData.centerOfMass[0]], [sensorData.centerOfMass[1]], [sensorData.centerOfMass[2]]]), forceVector).flatten()
-            f.write(f"{encoderData.timepoint},{forceVector[0,0]},{forceVector[0,1]},{forceVector[0,2]},{massVector[0]},{massVector[1]},{massVector[2]},{sensorData.sensorValues[0]},{sensorData.sensorValues[1]},{sensorData.sensorValues[2]},{sensorData.sensorValues[3]},{sensorData.sensorValues[4]},{sensorData.sensorValues[5]},{sensorData.sensorValues[6]},{sensorData.sensorValues[7]}\n")
+            f.write(f"{encoderData.timepoint},{forceVector[0,0]},{forceVector[0,1]},{forceVector[0,2]},{massVector[0]},{massVector[1]},{massVector[2]},{sensorData.sensorValues[0]},{sensorData.sensorValues[1]},{sensorData.sensorValues[2]},{sensorData.sensorValues[3]},{sensorData.sensorValues[4]},{sensorData.sensorValues[7]},{sensorData.sensorValues[6]},{sensorData.sensorValues[5]}\n")
 
 if __name__ == "__main__":
     print()

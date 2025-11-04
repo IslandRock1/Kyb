@@ -15,26 +15,21 @@ height_disk = 0.01
 mass_cylinder = 0.00101901
 height_cylinder = 0.09
 
-mass_weight = 0.675
+mass_weight = 0.271
 height_weight = 0.04475 * 2
 
-def calculateCenterOfMass():
-    t0 = (mass_disk * height_disk / 2)
-    t1 = (mass_cylinder * (height_cylinder / 2 + height_disk))
-    t2 = (mass_weight * (height_weight / 2 + height_disk))
 
-    return (t0 + t1 + t2) / (mass_disk + mass_cylinder + mass_weight)
 
 def getCenterOfMass() -> tuple[float, np.matrix]:
 
-    mass = 1.039
+    mass = 0.602
 
     # x/y = 0.029
     # z = 0.053
     delta = 0.029
     COG = np.matrix([
         [-delta],
-        [delta],
+        [-delta],
         [0.053]
     ])
 

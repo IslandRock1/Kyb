@@ -325,5 +325,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM12", baudrate=115200, portSensor=None, baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM8", baudrate=115200, portSensor="COM5", baudrateSensor=115200)
     app.run()
