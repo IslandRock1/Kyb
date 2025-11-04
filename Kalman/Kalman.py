@@ -1,3 +1,6 @@
+# Kalman filter based on "A Linear Discrete Kalman Filter to Estimate the Contact Wrench of an
+# Unknown Robot End Effector" by Skrede (2024)
+
 import numpy as np
 
 def skew(v):
