@@ -88,6 +88,8 @@ class ESP32ControlApp:
         self.alpha = 0.01
         setattr(self, f"timeToUpdateAngles", self.timeToUpdateAngles)
 
+        self.updateForceLabel()
+
     def updateButtonColor(self):
 
         remainingTime = 5 + self.recording_time - perf_counter()
@@ -206,6 +208,8 @@ class ESP32ControlApp:
 
             self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")
 
+        self.root.after(100, self.updateForceLabel)
+
     def read_serial(self):
         """Read responses from ESP32 in background"""
 
@@ -247,8 +251,6 @@ class ESP32ControlApp:
                                 self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
                 except Exception as e:
                     print(e)
-
-            self.root.after(0, self.updateForceLabel)
 
     # -----------------------------
     # Slider & Entry Callbacks
@@ -330,5 +332,5 @@ class ESP32ControlApp:
 if __name__ == "__main__":
     print()
     print()
-    app = ESP32ControlApp(port="COM3", baudrate=115200, portSensor="COM6", baudrateSensor=115200)
+    app = ESP32ControlApp(port="COM5", baudrate=115200, portSensor="COM7", baudrateSensor=115200)
     app.run()
