@@ -178,7 +178,12 @@ class ESP32ControlApp:
 
             # West = C + LS + QS^2
             C, L, Q = getCLQ()
-            S = np.matrix(self.currentForceValues).T
+
+            currentForceValues = self.currentForceValues.copy()
+            tmp = currentForceValues[5]
+            currentForceValues[5] = currentForceValues[7]
+            currentForceValues[7] = tmp
+            S = np.matrix(currentForceValues).T
 
             # Begin ChatGPT code
             # Ehm, the paper says S^2, but as that is a vector, they mean
