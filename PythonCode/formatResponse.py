@@ -1,6 +1,7 @@
 import numpy as np
 
-from helperFunctions import SensorData, EncoderData, getData, getForceVector, getMassVector, SensorToWorldFromSlides
+from PythonCode.utils.Data import SensorData, EncoderData, getData
+from PythonCode.utils.SensorHelpers import getForceVector, getMassVector, SensorToWorldFromSlides
 
 def syncData(encoderData: list[EncoderData], sensorData: list[SensorData]):
     outSensor = []
@@ -28,7 +29,7 @@ def main():
     encoderDataL, sensorDataL = syncData(data[0], data[1])
 
     lsdt = []
-    with open("syncronized.csv", "w") as f:
+    with open("PythonCode/DATA/syncronized.csv", "w") as f:
         f.write("Timestamp,Fx,Fy,Fz,Mx,My,Mz,s0,s1,s2,s3,s4,s5,s6,s7\n")
         for (encoderData, sensorData) in zip(encoderDataL, sensorDataL):
             dt = encoderData.timepoint - sensorData.timepoint
@@ -43,4 +44,3 @@ def main():
 if __name__ == "__main__":
     print()
     main()
-    # test()

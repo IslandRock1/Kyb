@@ -5,8 +5,12 @@ from dataclasses import dataclass
 from time import  perf_counter
 import numpy as np
 
-from helperFunctions import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ, formatForceLabel
-from CalculateCenterOfMass import getCenterOfMass
+from PythonCode.utils.SensorHelpers import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ
+from PythonCode.utils.CalculateCenterOfMass import getCenterOfMass
+
+def formatForceLabel(x):
+    out = round(float(x), 2)
+    return f" {out: .2f}"
 
 @dataclass
 class SerialData:
@@ -319,7 +323,7 @@ class ESP32ControlApp:
 
         if (len(self.responses) > 0):
             print("Saving to file..")
-            with open("SystemidentificationScripts/response.txt", "a") as f:
+            with open("PythonCode/DATA/response.txt", "a") as f:
                 f.writelines(self.responses)
             print("Finished saving to file.")
         else:

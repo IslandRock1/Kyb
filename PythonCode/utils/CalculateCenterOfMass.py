@@ -1,17 +1,5 @@
 
-
-"""
-
-This file calculates the distance from the four-stroke sensor to the center of mass
-Using the centre jog, and the cylinder.
-
-"""
-
 import numpy as np
-
-
-
-
 
 def getCenterOfMass() -> tuple[float, np.matrix]:
 

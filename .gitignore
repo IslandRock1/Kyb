@@ -2,7 +2,7 @@
 .idea
 .venv
 .vscode
-SystemIdentificationScripts/venv
-SystemIdentificationScripts/__pycache__
-SystemIdentificationScripts/data_processed.csv
-SystemIdentificationScripts/data_raw.csv
+PythonCode/venv
+PythonCode/__pycache__
+PythonCode/data_processed.csv
+PythonCode/data_raw.csv
