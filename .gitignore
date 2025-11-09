@@ -2,7 +2,5 @@
 .idea
 .venv
 .vscode
-PythonCode/venv
-PythonCode/__pycache__
-PythonCode/data_processed.csv
-PythonCode/data_raw.csv
+PythonCode/DATA
+PythonCode/Plots
