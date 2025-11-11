@@ -1,9 +1,10 @@
 import serial
 import time
 import threading
+import keyboard
 
 class RobotController:
-    def __init__(self, port: str = "COM5", baudrate: int = 115200):
+    def __init__(self, port: str = "COM8", baudrate: int = 115200):
         try:
             self.ser = serial.Serial(port, baudrate, timeout=0.01)
             print(f"Connected to robot on {port}")
@@ -70,10 +71,40 @@ class RobotController:
             self.ser.close()
         print("Connection closed.")
 
+    def calibrate(self):
+        print("Use arrow keys to move the robot manually. Press Enter to set encoder offsets.")
+        print("Up/Down = Shoulder, Left/Right = Wrist")
 
+        while True:
+            if keyboard.is_pressed("up"):
+                self.setShoulderGain(50)
+            elif keyboard.is_pressed("down"):
+                self.setShoulderGain(-50)
+            else:
+                self.setShoulderGain(0)
+
+            if keyboard.is_pressed("right"):
+                self.setWristGain(50)
+            elif keyboard.is_pressed("left"):
+                self.setWristGain(-50)
+            else:
+                self.setWristGain(0)
+
+            if keyboard.is_pressed("enter"):
+                with self._lock:
+                    self._shoulder_offset = self._shoulder_angle
+                    self._wrist_offset = self._wrist_angle
+                self.stop()
+                print(f"Calibration done. Shoulder offset: {self._shoulder_offset:.2f}, Wrist offset: {self._wrist_offset:.2f}")
+                break
+
+            time.sleep(0.05)
 
 if __name__ == "__main__":
     robot = RobotController("COM8", 115200)
+    robot.calibrate()
+
+    time.delay(10)
 
     robot.close()
     print("Test finished.")
