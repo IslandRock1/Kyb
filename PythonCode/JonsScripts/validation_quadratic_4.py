@@ -40,7 +40,7 @@ try:
     overload_upper = 950
 
     # Load calibrated C and L
-    model_name = "lasso"
+    model_name = "linearregression"
     # df = pd.read_csv(r'PythonCode/DATA/params_linearregression_quadratic.csv')
     df = pd.read_csv(fr'PythonCode/DATA/params_{model_name}_quadratic.csv')
     C = df[['C']].values # Shape: (6, 1)

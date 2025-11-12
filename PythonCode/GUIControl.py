@@ -185,10 +185,12 @@ class ESP32ControlApp:
             self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x) for x in West])}")
 
 
-            Rsw = SensorToWorldFromSlides(self.currentAngleValues[0], self.currentAngleValues[1])
+            # print(f"Shoulder angle: {self.currentAngleValues[1]} | Wrist angle: {self.currentAngleValues[0]}")
+            Rsw = SensorToWorldFromSlides(self.currentAngleValues[1], self.currentAngleValues[0])
 
             forceVector = getForceVector(mass, Rsw).flatten()
             massVector = getMassVector(COG, forceVector).flatten()
+            print(f"Mass: {mass} | Rsw: {Rsw} | forceVector: {forceVector}")
             self.filteredLabel.config(text = f"{forceVector[0,0]},{forceVector[0,1]},{forceVector[0,2]},{massVector[0]},{massVector[1]},{massVector[2]}")
 
             # self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")

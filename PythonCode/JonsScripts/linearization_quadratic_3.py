@@ -22,7 +22,7 @@ W = df[['Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']].values  # Shape: (datapoints, 6)
 
 # Create pipeline with quadratic terms
 poly = PolynomialFeatures(degree=2, include_bias=False)  # Linear + quadratic terms
-estimator = 'lasso' #estimator = 'ridge' #estimator = 'linearregression', also lasso
+estimator = 'linearregression' #estimator = 'ridge' #estimator = 'linearregression', also lasso
 if estimator == 'linearregression':
     model = make_pipeline(poly, LinearRegression())
 elif estimator == 'ridge':

@@ -3,7 +3,7 @@ import numpy as np
 
 def getCenterOfMass() -> tuple[float, np.matrix]:
 
-    mass = 0.148 + 40
+    mass = 0.148 + 0.040
 
     # x/y = 0.029
     # z = 0.053

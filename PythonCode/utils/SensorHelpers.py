@@ -25,7 +25,7 @@ def getCLQ():
 
     # This code is taken from Jon's Python scrip "4_validation_quadratic.py"
     n_sensors = 8
-    df = pd.read_csv(f'PythonCode/DATA/params_lasso_quadratic.csv')
+    df = pd.read_csv(f'PythonCode/DATA/params_linearregression_quadratic.csv')
     C = df[['C']].values # Shape: (6, 1)
     L = df[['L_s0','L_s1','L_s2','L_s3','L_s4','L_s5','L_s6','L_s7']].values # Shape: (6, 8)
     Q_cols = [f'Q_s{i}s{j}' for i in range(n_sensors) for j in range(i, n_sensors)]
