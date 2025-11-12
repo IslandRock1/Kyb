@@ -1,6 +1,6 @@
 
-import PythonCode.JonsScripts.merge_data_2
-import PythonCode.JonsScripts.plot_data_2
-import PythonCode.JonsScripts.plot_data_2s
+#import PythonCode.JonsScripts.merge_data_2
+#import PythonCode.JonsScripts.plot_data_2
+#import PythonCode.JonsScripts.plot_data_2s
 import PythonCode.JonsScripts.linearization_quadratic_3
 import PythonCode.JonsScripts.validation_quadratic_4

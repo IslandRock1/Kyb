@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import  perf_counter
 import numpy as np
 
-from PythonCode.utils.SensorHelpers import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ
+from PythonCode.utils.SensorHelpers import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ, compute_wrench
 from PythonCode.utils.CalculateCenterOfMass import getCenterOfMass
 
 def formatForceLabel(x):
@@ -170,47 +170,28 @@ class ESP32ControlApp:
         mass, COG = getCenterOfMass()
 
         if (len(self.currentForceValues) != 0) and (len(self.currentAngleValues) != 0):
-            Rsw = SensorToWorldFromSlides(self.currentAngleValues[0], self.currentAngleValues[1])
-            forceVector = getForceVector(mass, Rsw).flatten()
-            massVector = getMassVector(COG, forceVector).flatten()
 
-            forceMass = np.matrix([
-                [forceVector[0,0]],
-                [forceVector[0,1]],
-                [forceVector[0,2]],
-                [massVector[0]],
-                [massVector[1]],
-                [massVector[2]]])
-
-            # West = C + LS + QS^2
             C, L, Q = getCLQ()
 
             currentForceValues = self.currentForceValues.copy()
             tmp = currentForceValues[5]
             currentForceValues[5] = currentForceValues[7]
             currentForceValues[7] = tmp
-            S = np.matrix(currentForceValues).T
-
-            # Begin ChatGPT code
-            # Ehm, the paper says S^2, but as that is a vector, they mean
-            # like the upper triangle of the multiplication.
-            # I think this might be correct..
-            n = S.size
-
-            outer = np.outer(S, S)               # shape (8,8), outer[i,j] = S[i]*S[j]
-            idx = np.triu_indices(n)             # indices for i<=j (upper triangular incl. diag)
-            result = outer[idx].reshape(-1, 1)   # 1-D array of length n*(n+1)//2
-            # End ChatGPT code
-
-            West = C + L @ S + Q @ result
-            West -= forceMass
+            West = compute_wrench(C, L, Q, currentForceValues)
 
             out = [float(formatForceLabel(x)) for x in West]
             newOut = [self.forceLabelValues[i] * (1 - self.alpha) + out[i] * self.alpha for i in range(6)]
             self.forceLabelValues = newOut
             self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x) for x in West])}")
 
-            self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")
+
+            Rsw = SensorToWorldFromSlides(self.currentAngleValues[0], self.currentAngleValues[1])
+
+            forceVector = getForceVector(mass, Rsw).flatten()
+            massVector = getMassVector(COG, forceVector).flatten()
+            self.filteredLabel.config(text = f"{forceVector[0,0]},{forceVector[0,1]},{forceVector[0,2]},{massVector[0]},{massVector[1]},{massVector[2]}")
+
+            # self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")
 
         self.root.after(100, self.updateForceLabel)
 
