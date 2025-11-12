@@ -226,7 +226,10 @@ class ESP32ControlApp:
 
                         if (self.timeToUpdateAngles):
                             self.timeToUpdateAngles = False
-                            self.currentAngleValues = [float(x) for x in line.split(",")][0:4]
+                            values = [float(x) for x in line.split(",")][0:4]
+                            values[0] = np.deg2rad(values[0])  # Konverter wrist til radianer
+                            values[1] = np.deg2rad(values[1])  # Konverter shoulder til radianer
+                            self.currentAngleValues = values
 
                         if (perf_counter() - self.recording_time) < 5.0:
                             self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
