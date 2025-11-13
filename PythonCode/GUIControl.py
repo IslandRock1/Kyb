@@ -197,50 +197,56 @@ class ESP32ControlApp:
 
         self.root.after(100, self.updateForceLabel)
 
+    def read_sensor(self):
+        mass, COG = getCenterOfMass()
+
+        try:
+            if self.serSensor.in_waiting:
+                line = self.serSensor.readline().decode(errors="ignore").strip()
+                self.timeToUpdateAngles = True
+
+                readings: list[str] = line.split(" ")[3:]
+                num = readings.count("")
+                for _ in range(num): readings.remove("")
+
+                self.currentForceValues = [int(x) for x in readings[-8:]]
+
+                print(line)
+                if (perf_counter() - self.recording_time) < 5.0:
+                    self.responses.append(f"{perf_counter()},FORCE,{line} {mass} {COG[0,0]} {COG[1,0]} {COG[2,0]}\n")
+        except Exception as e:
+            print(e)
+
+    def read_motor(self):
+        try:
+            if self.ser.in_waiting:
+                line = self.ser.readline().decode(errors="ignore").strip()
+
+                if (self.timeToUpdateAngles):
+                    self.timeToUpdateAngles = False
+                    values = [float(x) for x in line.split(",")][0:4]
+                    values[0] = np.deg2rad(values[0])  # Konverter wrist til radianer
+                    values[1] = np.deg2rad(values[1])  # Konverter shoulder til radianer
+                    self.currentAngleValues = values
+
+                if (perf_counter() - self.recording_time) < 5.0:
+                    self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
+                if line:
+                    formatted = self.format_response(line)
+                    if formatted:
+                        self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
+        except Exception as e:
+            print(e)
+
     def read_serial(self):
         """Read responses from ESP32 in background"""
 
-        mass, COG = getCenterOfMass()
-
         while self.running:
             if (self.serSensor is not None):
-                try:
-                    if self.serSensor.in_waiting:
-                        line = self.serSensor.readline().decode(errors="ignore").strip()
-                        self.timeToUpdateAngles = True
-
-                        readings: list[str] = line.split(" ")[3:]
-                        num = readings.count("")
-                        for _ in range(num): readings.remove("")
-
-                        self.currentForceValues = [int(x) for x in readings[-8:]]
-
-                        print(line)
-                        if (perf_counter() - self.recording_time) < 5.0:
-                            self.responses.append(f"{perf_counter()},FORCE,{line} {mass} {COG[0,0]} {COG[1,0]} {COG[2,0]}\n")
-                except Exception as e:
-                    print(e)
+                self.read_sensor()
 
             if (self.ser is not None):
-                try:
-                    if self.ser.in_waiting:
-                        line = self.ser.readline().decode(errors="ignore").strip()
-
-                        if (self.timeToUpdateAngles):
-                            self.timeToUpdateAngles = False
-                            values = [float(x) for x in line.split(",")][0:4]
-                            values[0] = np.deg2rad(values[0])  # Konverter wrist til radianer
-                            values[1] = np.deg2rad(values[1])  # Konverter shoulder til radianer
-                            self.currentAngleValues = values
-
-                        if (perf_counter() - self.recording_time) < 5.0:
-                            self.responses.append(f"{perf_counter()},ROBOT,{line}\n")
-                        if line:
-                            formatted = self.format_response(line)
-                            if formatted:
-                                self.root.after(0, lambda: self.response_label.config(text=f"ESP32 Response: {formatted}"))
-                except Exception as e:
-                    print(e)
+                self.read_motor()
 
     # -----------------------------
     # Slider & Entry Callbacks
