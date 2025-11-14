@@ -8,8 +8,8 @@ import numpy as np
 from PythonCode.utils.SensorHelpers import getForceVector, getMassVector, SensorToWorldFromSlides, getCLQ, compute_wrench
 from PythonCode.utils.CalculateCenterOfMass import getCenterOfMass
 
-def formatForceLabel(x):
-    out = round(float(x), 2)
+def formatForceLabel(x, gComp):
+    out = round(float(x - gComp), 2)
     return f" {out: .2f}"
 
 @dataclass
@@ -93,6 +93,15 @@ class ESP32ControlApp:
         setattr(self, f"timeToUpdateAngles", self.timeToUpdateAngles)
 
         self.updateForceLabel()
+
+    def update_frame(self, last_time):
+        # Compute FPS
+        current_time = perf_counter()
+        dt = current_time - last_time
+
+        fps = 1 / dt if dt > 0 else 0
+        # print(f"FPS: {fps}")
+        return current_time
 
     def updateButtonColor(self):
 
@@ -179,18 +188,19 @@ class ESP32ControlApp:
             currentForceValues[7] = tmp
             West = compute_wrench(C, L, Q, currentForceValues)
 
-            out = [float(formatForceLabel(x)) for x in West]
+            Rws = SensorToWorldFromSlides(self.currentAngleValues[1], self.currentAngleValues[0])
+
+            forceVector = getForceVector(mass, Rws).flatten()
+            massVector = getMassVector(COG, forceVector).flatten()
+
+            Wcomp = [forceVector[0,0],forceVector[0,1],forceVector[0,2],massVector[0],massVector[1],massVector[2]]
+
+
+            out = [float(formatForceLabel(x, gC)) for (x, gC) in zip(West, Wcomp)]
             newOut = [self.forceLabelValues[i] * (1 - self.alpha) + out[i] * self.alpha for i in range(6)]
             self.forceLabelValues = newOut
-            self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x) for x in West])}")
+            self.forceLabel.config(text=f"W_est = {"".join([formatForceLabel(x, gC) for (x, gC) in zip(West, Wcomp)])}")
 
-
-            # print(f"Shoulder angle: {self.currentAngleValues[1]} | Wrist angle: {self.currentAngleValues[0]}")
-            Rsw = SensorToWorldFromSlides(self.currentAngleValues[1], self.currentAngleValues[0])
-
-            forceVector = getForceVector(mass, Rsw).flatten()
-            massVector = getMassVector(COG, forceVector).flatten()
-            print(f"Mass: {mass} | Rsw: {Rsw} | forceVector: {forceVector}")
             self.filteredLabel.config(text = f"{forceVector[0,0]},{forceVector[0,1]},{forceVector[0,2]},{massVector[0]},{massVector[1]},{massVector[2]}")
 
             # self.filteredLabel.config(text = f"Filtered: {"".join([formatForceLabel(x) for x in newOut])}")
@@ -220,7 +230,16 @@ class ESP32ControlApp:
     def read_motor(self):
         try:
             if self.ser.in_waiting:
-                line = self.ser.readline().decode(errors="ignore").strip()
+                # line = self.ser.readline().decode(errors="ignore").strip()
+
+                latest = None
+                while self.ser.in_waiting:
+                    latest = self.ser.readline().decode(errors="ignore").strip()
+
+                if latest is None:
+                    return  # nothing to process
+
+                line = latest
 
                 if (self.timeToUpdateAngles):
                     self.timeToUpdateAngles = False
@@ -241,7 +260,9 @@ class ESP32ControlApp:
     def read_serial(self):
         """Read responses from ESP32 in background"""
 
+        last_time = perf_counter()
         while self.running:
+            last_time = self.update_frame(last_time)
             if (self.serSensor is not None):
                 self.read_sensor()
 

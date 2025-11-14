@@ -15,8 +15,8 @@ def SensorToWorldFromSlides(theta_shoulder, theta_wrist):
         [-cos(t1) * cos(t2), cos(t1) * sin(t2), sin(t1)],
     ])
 
-def getForceVector(mass, Rsw):
-    return np.linalg.inv(Rsw) @ np.matrix([[0], [0], [-mass * 9.81]])
+def getForceVector(mass, Rws):
+    return np.linalg.inv(Rws) @ np.matrix([[0], [0], [-mass * 9.81]])
 
 def getMassVector(rs, forceVector):
     return np.linalg.cross(rs.flatten(), forceVector.flatten())

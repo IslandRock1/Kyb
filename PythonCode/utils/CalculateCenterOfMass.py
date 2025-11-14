@@ -3,15 +3,13 @@ import numpy as np
 
 def getCenterOfMass() -> tuple[float, np.matrix]:
 
-    mass = 0.148 + 0.040
+    mass = 0.262
 
-    # x/y = 0.029
-    # z = 0.053
-    delta = 0.010
+    delta = 0.018
     COG = np.matrix([
-        [0],
-        [0],
-        [0.046]
+        [-delta],
+        [-delta],
+        [0.05]
     ])
 
     return (mass, COG)
