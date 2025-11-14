@@ -115,7 +115,7 @@ void loop() {
     ESPUI.updateLabel(labelShoulderActual, String(motorLinkageShoulder.getDegrees(), 1) + " deg");
     ESPUI.updateLabel(labelWristActual, String(motorLinkageWrist.getDegrees(), 1) + " deg");
 
-    motorLinkageWrist.update(angleWrist);
-    motorLinkageShoulder.update(angleShoulder);
+    motorLinkageWrist.updatePosition(angleWrist);
+    motorLinkageShoulder.updatePosition(angleShoulder);
 
 }

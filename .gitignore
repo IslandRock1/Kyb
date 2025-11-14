@@ -2,7 +2,5 @@
 .idea
 .venv
 .vscode
-SystemIdentificationScripts/venv
-SystemIdentificationScripts/__pycache__
-SystemIdentificationScripts/data_processed.csv
-SystemIdentificationScripts/data_raw.csv
+PythonCode/DATA
+PythonCode/Plots

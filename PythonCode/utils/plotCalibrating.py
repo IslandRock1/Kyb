@@ -1,6 +1,6 @@
 
 import matplotlib.pyplot as plt
-from helperFunctions import SensorData, EncoderData, getData
+from PythonCode.utils.Data import SensorData, EncoderData, getData
 
 def plotSensorData(sensorData: list[SensorData]):
     x_values = [x.timepoint - sensorData[0].timepoint for x in sensorData]
