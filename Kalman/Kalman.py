@@ -57,6 +57,7 @@ class ContactWrenchKalmanFilter:
         self.x = self.x + K @ y
         self.P = self.P - K @ self.Hf @ self.P
 
+    # might not need this part? We don't use IMU yet
     def update_IMU(self, za):
         # Correction step for IMU
         S = self.Ha @ self.P @ self.Ha.T + self.Ra
@@ -66,16 +67,16 @@ class ContactWrenchKalmanFilter:
         self.P = self.P - K @ self.Ha @ self.P
 
     def contact_wrench_estimate(self):
-        # Output equation (Skrede eq. 22): z_c = [m*I3 | I3 | 0; m*[r_s]_x | 0 | I3] x
+        # Output equation (Skrede eq. 22): z_c = [-m*I3 | I3 | 0; -m*[r_s]_x | 0 | I3] x
         m, r_s = self.m, self.r_s
         # Build H_c (6x9)
         Hc = np.zeros((6, 9))
-        # Forces
-        Hc[0:3, 0:3] = m * np.eye(3)
-        Hc[0:3, 3:6] = np.eye(3)
-        # Torques
-        Hc[3:6, 0:3] = m * r_s
-        Hc[3:6, 6:9] = np.eye(3)
+        # Force row: -m a + F
+        Hc[0:3, 0:3] = -m * np.eye(3)       # -m a
+        Hc[0:3, 3:6] = np.eye(3)            # +F
+        # Torque row: -m [r_s]_x a +T
+        Hc[3:6, 0:3] = -m * r_s             # -m [r_s]_x a
+        Hc[3:6, 6:9] = np.eye(3)            # +T
         return Hc @ self.x
 
 # --- Example usage skeleton ---
