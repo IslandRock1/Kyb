@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import casadi as ca
 import do_mpc
 
@@ -16,7 +15,6 @@ class LinearMPC:
         self._setup_simulator()
 
     def _build_model(self):
-        """Build the discrete-time CasADi model."""
         self.model = do_mpc.model.Model("discrete")
         self.x = self.model.set_variable(var_type='_x', var_name='x', shape=(self.nx, 1))
         self.u = self.model.set_variable(var_type='_u', var_name='u', shape=(self.nu, 1))
@@ -30,7 +28,6 @@ class LinearMPC:
         self.model.setup()
 
     def _setup_mpc(self):
-        """Setup MPC controller."""
         self.mpc = do_mpc.controller.MPC(self.model)
         self.mpc.set_param(
             n_horizon=self.n_horizon,
@@ -39,50 +36,34 @@ class LinearMPC:
             store_full_solution=True
         )
 
-        # Cost function
         lterm = ca.mtimes([self.x.T, self.Q, self.x]) + ca.mtimes([self.u.T, self.R, self.u])
         mterm = ca.mtimes([self.x.T, self.Q, self.x])
         self.mpc.set_objective(lterm=lterm, mterm=mterm)
         self.mpc.set_rterm(ca.SX(self.R))
 
-        # Input constraints
         self.mpc.bounds['lower', '_u', 'u'] = -1.0
         self.mpc.bounds['upper', '_u', 'u'] = 1.0
 
         self.mpc.setup()
 
     def _setup_simulator(self):
-        """Setup simulator."""
         self.sim = do_mpc.simulator.Simulator(self.model)
         self.sim.set_param(t_step=self.t_step)
         self.sim.setup()
 
-    def simulate(self, x0, N=60):
-        """Run closed-loop simulation."""
+    def init_controller(self, x0):
+        """Initialize MPC for either simulation or real system."""
         self.mpc.x0 = x0
         self.mpc.u0 = np.zeros((self.nu, 1))
         self.mpc.set_initial_guess()
-        self.sim.x0 = x0
 
-        x_current = x0
-        x_log, u_log = [], []
-
-        for _ in range(N):
-            u0 = self.mpc.make_step(x_current)
-            x_current = self.sim.make_step(u0)
-            x_log.append(x_current.flatten())
-            u_log.append(float(u0))
-
-        x_log = np.array(x_log)
-        u_log = np.array(u_log)
-        y_log = (self.C @ x_log.T).T
-        time = np.arange(N) * self.t_step
-
-        return time, x_log, u_log, y_log
+    def step(self, x_current):
+        """Compute the control input for a given state."""
+        return self.mpc.make_step(x_current)
 
     @staticmethod
     def plot_results(time, x_log, u_log, y_log, Q, R):
-        """Plot simulation results."""
+        import matplotlib.pyplot as plt
         fig, axs = plt.subplots(3, 1, figsize=(8, 6))
         fig.suptitle(f"Q: {Q[0,0]}, {Q[1,1]} | R: {R[0,0]}", fontsize=14)
 
@@ -103,29 +84,3 @@ class LinearMPC:
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.savefig(f"Q{Q[0,0]}_{Q[1,1]}_R{R[0,0]}.svg")
         plt.show()
-
-
-def main():
-    # System matrices
-    A = np.array([[1.0, 0.1],
-                  [0.0, 1.0]])
-    B = np.array([[0.0],
-                  [0.1]])
-    C = np.array([[1.0, 0.0]])
-    D = np.array([[0.0]])
-
-    # MPC cost matrices
-    Q = np.diag([10000.0, 1000.0])
-    R = np.diag([1.0])
-
-    # Initial state
-    x0 = np.array([[0.5],
-                   [0.0]])
-
-    mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=20, t_step=0.1)
-    time, x_log, u_log, y_log = mpc_system.simulate(x0, N=60)
-    mpc_system.plot_results(time, x_log, u_log, y_log, Q, R)
-
-
-if __name__ == "__main__":
-    main()
