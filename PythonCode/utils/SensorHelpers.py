@@ -15,8 +15,8 @@ def SensorToWorldFromSlides(theta_shoulder, theta_wrist):
         [-cos(t1) * cos(t2), cos(t1) * sin(t2), sin(t1)],
     ])
 
-def getForceVector(mass, Rsw):
-    return np.linalg.inv(Rsw) @ np.matrix([[0], [0], [-mass * 9.81]])
+def getForceVector(mass, Rws):
+    return np.linalg.inv(Rws) @ np.matrix([[0], [0], [-mass * 9.81]])
 
 def getMassVector(rs, forceVector):
     return np.linalg.cross(rs.flatten(), forceVector.flatten())
@@ -32,3 +32,15 @@ def getCLQ():
     Q = df[Q_cols].values  # Shape: (6, 36)
 
     return C, L, Q
+
+def compute_wrench(C, L, Q, S):
+
+    # This code is taken from Jon's Python script.
+    W = np.zeros(6)
+    S = np.array(S)
+    # Linear terms: C + LS
+    W += C.flatten() + L @ S
+    # Quadratic terms: QS^2
+    quad_terms = np.array([S[i] * S[j] for i in range(len(S)) for j in range(i, len(S))])
+    W += Q @ quad_terms
+    return W.tolist()

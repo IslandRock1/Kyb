@@ -40,7 +40,9 @@ try:
     overload_upper = 950
 
     # Load calibrated C and L
-    df = pd.read_csv(r'PythonCode/DATA/params_linearregression_quadratic.csv')
+    model_name = "linearregression"
+    # df = pd.read_csv(r'PythonCode/DATA/params_linearregression_quadratic.csv')
+    df = pd.read_csv(fr'PythonCode/DATA/params_{model_name}_quadratic.csv')
     C = df[['C']].values # Shape: (6, 1)
     L = df[['L_s0','L_s1','L_s2','L_s3','L_s4','L_s5','L_s6','L_s7']].values # Shape: (6, 8)
     Q_cols = [f'Q_s{i}s{j}' for i in range(n_sensors) for j in range(i, n_sensors)]
@@ -90,7 +92,7 @@ try:
 
     # Create DataFrame from errors and save to CSV
     error_df = pd.DataFrame(errors)
-    error_df.to_csv(f'PythonCode/Plots/error_val_linearregression_quadratic.csv', index=False)
+    error_df.to_csv(f'PythonCode/Plots/error_val_{model_name}_quadratic.csv', index=False)
 
     # Plot 1: Forces and Moments
     plt.figure(figsize=(12, 5))
@@ -119,7 +121,7 @@ try:
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig(f'PythonCode/Plots/error_val_linearregression_quadratic.png')
+    plt.savefig(f'PythonCode/Plots/error_val_{model_name}_quadratic.png')
     plt.close()
 
     # Plot 2: Error Histograms
@@ -185,7 +187,7 @@ try:
     plt.axvline(x=0, color='k', linewidth=2, linestyle='-')
 
     plt.tight_layout()
-    plt.savefig(f'PythonCode/Plots/error_dist_val_linearregression_quadratic.png')
+    plt.savefig(f'PythonCode/Plots/error_dist_val_{model_name}_quadratic.png')
     plt.close()
 
 

@@ -35,7 +35,7 @@ def main():
             dt = encoderData.timepoint - sensorData.timepoint
             lsdt.append(dt)
 
-            Rsw = SensorToWorldFromSlides(encoderData.shoulder_angle, encoderData.wrist_angle)
+            Rsw = SensorToWorldFromSlides(np.deg2rad(encoderData.shoulder_angle), np.deg2rad(encoderData.wrist_angle))
 
             forceVector = getForceVector(sensorData.weight, Rsw).flatten()
             massVector = getMassVector(np.matrix([[sensorData.centerOfMass[0]], [sensorData.centerOfMass[1]], [sensorData.centerOfMass[2]]]), forceVector).flatten()
