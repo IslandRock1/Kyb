@@ -1,26 +1,20 @@
-import serial
 import time
-import threading
-import keyboard
-
 from robotController import RobotController
 from systemIdentificationDataCollector import SystemIdentificationDataCollector
+from blockSystemIdentification import BlockSystemIdentification
 
 if __name__ == "__main__":
     robot = RobotController("COM5", 115200)
-    data_collector_shoulder = SystemIdentificationDataCollector(robot, "shoulder", "shoulder_data.csv")
 
-    robot.calibrate()
-    data_collector_shoulder.startDataCollection()
-    time.sleep(1)
-    data_collector_shoulder.setMovementDescription("Shoulder 0 to 90 degrees PID")
-    robot.moveShoulderPID(180, 10)
-    data_collector_shoulder.setMovementDescription("Shoulder 90 to 0 degrees PID")
-    robot.moveShoulderPID(0.0, 10)
-    data_collector_shoulder.setMovementDescription("No Movement")
-    time.sleep(1)
-    data_collector_shoulder.stopDataCollection()
+    try:
+        robot.calibrate()
 
+        system_identification = BlockSystemIdentification(robot, joint="shoulder", filename="shoulder_data.csv", blocks=2)
+        system_identification.run()
 
-    robot.close()
-    print("Test finished.")
+    except KeyboardInterrupt:
+        print("\nInterrupted! Stopping robot for safety.")
+        robot.stop()
+
+    finally:
+        robot.close()
