@@ -53,12 +53,18 @@ class RobotController:
     def getShoulderPosition(self) -> float:
         #(0 to 360) anticlockwise is positive direction, zero position is at 3 oclock
         with self._lock:
-            return self._shoulder_angle - self._shoulder_offset
+            return round(self._shoulder_angle - self._shoulder_offset, 2)
 
     def getWristPosition(self) -> float:
         #(0 to 360) anticlockwise is positive direction
         with self._lock:
-            return self._wrist_angle - self._wrist_offset
+            return round(self._wrist_angle - self._wrist_offset, 2)
+        
+    def getShoulderGain(self) -> int:
+        return self._shoulder_gain     
+    
+    def getWristGain(self) -> int:
+        return self._wrist_gain
 
     def stop(self):
         self._wrist_gain = 0
@@ -158,7 +164,7 @@ class RobotController:
         self.setShoulderGain(0)
 
     def moveWristPID(self, target_angle, timeout=0.0,
-                    Kp=0.0, Ki=0.0, Kd=0.0):
+                    Kp=24.0, Ki=0.0, Kd=0.0):
 
         integral = 0
         last_error = 0

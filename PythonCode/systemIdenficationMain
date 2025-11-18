@@ -4,14 +4,23 @@ import threading
 import keyboard
 
 from robotController import RobotController
+from systemIdentificationDataCollector import SystemIdentificationDataCollector
 
 if __name__ == "__main__":
     robot = RobotController("COM5", 115200)
-    robot.calibrate()
+    data_collector_shoulder = SystemIdentificationDataCollector(robot, "shoulder", "shoulder_data.csv")
 
-    robot.moveWristPID(180, 10, Kp=24.0)
-    robot.moveWristPID(0.0, 10, Kp=24.0)
+    robot.calibrate()
+    data_collector_shoulder.startDataCollection()
+    time.sleep(1)
+    data_collector_shoulder.setMovementDescription("Shoulder 0 to 90 degrees PID")
+    robot.moveShoulderPID(180, 10)
+    data_collector_shoulder.setMovementDescription("Shoulder 90 to 0 degrees PID")
+    robot.moveShoulderPID(0.0, 10)
+    data_collector_shoulder.setMovementDescription("No Movement")
+    time.sleep(1)
+    data_collector_shoulder.stopDataCollection()
+
 
     robot.close()
-
     print("Test finished.")
