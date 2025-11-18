@@ -1,0 +1,17 @@
+import serial
+import time
+import threading
+import keyboard
+
+from robotController import RobotController
+
+if __name__ == "__main__":
+    robot = RobotController("COM5", 115200)
+    robot.calibrate()
+
+    robot.moveWristPID(180, 5, Kp=24.0)
+    robot.moveWristPID(0.0, 5, Kp=24.0)
+
+    robot.close()
+
+    print("Test finished.")
