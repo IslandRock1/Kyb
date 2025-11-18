@@ -7,20 +7,20 @@ class BlockSystemIdentification:
     def __init__(self, robot: RobotController, joint: str, filename: str, blocks: int):
         if blocks % 2 != 0:
             raise ValueError("Number of blocks must be even to balance methods")
-            
         self.robot = robot
         self.joint = joint.lower()
         self.blocks = blocks
         self.filename = filename
         self.data_collector = SystemIdentificationDataCollector(robot, joint, filename)
-        self.max_angle = 270.0  #maximum deviation from zero
+        self.max_angle = 270.0
         self.min_angle = -270.0
+        self._next_direction = 1
 
     def _random_gain_and_duration(self):
-        gain = random.randint(30, 255)
+        gain = random.randint(30, 255) * self._next_direction
+        self._next_direction *= -1
         duration = random.uniform(0.5, 3.0)
-        direction = random.choice([-1, 1])
-        return direction * gain, duration
+        return gain, duration
 
     def _get_joint_position(self):
         if self.joint == "shoulder":
@@ -37,50 +37,74 @@ class BlockSystemIdentification:
     def _stop_joint(self):
         self._apply_gain(0)
 
-    def _run_block(self, method: str, duration: float = 60.0):
-        start_time = time.time()
-        print(f"Starting {method} block. Moving {self.joint} randomly for {duration:.1f}s.")
+    def _print_with_timestamp(self, message: str, start_time: float):
+        elapsed = time.time() - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+        print(f"[{minutes:02d}:{seconds:02d}] {message}")
+
+    def _run_block(self, method: str, duration: float, total_start_time: float):
+        block_start_time = time.time()
         self._stop_joint()
         self.data_collector.setMovementDescription(f"{method} block start: zeroing")
-        self.data_collector.startDataCollection()
+        self._print_with_timestamp(f"{method} block start: zeroing", total_start_time)
 
         elapsed = 0.0
 
         while elapsed < duration:
             gain, move_duration = self._random_gain_and_duration()
-            
-            #check safety
+            remaining = move_duration
             current_pos = self._get_joint_position()
-            if (current_pos >= self.max_angle and gain > 0) or (current_pos <= self.min_angle and gain < 0):
-                print(f"safety stop: joint at {current_pos:.1f}°, reversing gain {gain} -> {-gain}")
-                gain = -gain
 
-            #adjusts move_duration if it would exceed block duration
-            stop_time = 1.0 if method == "StopStart" else 0.0
-            if elapsed + move_duration + stop_time > duration:
-                move_duration = duration - elapsed - stop_time
-                if move_duration <= 0:
-                    break
+            elapsed = time.time() - block_start_time
+            self.data_collector.setMovementDescription(
+                f"{method} gain {gain} for {move_duration:.2f}s"
+            )
+            self._print_with_timestamp(
+                f"{method} gain {gain} applied at pos {current_pos:.1f}° for {move_duration:.2f}s",
+                total_start_time
+            )
 
-            self.data_collector.setMovementDescription(f"{method} moving at gain {gain}")
-            print(f"[{method}] Applying gain {gain} for {move_duration:.2f}s (current pos {current_pos:.1f}°)")
+            step = 0.05
+            while remaining > 0 and elapsed < duration:
+                current_pos = self._get_joint_position()
 
-            self._apply_gain(gain)
-            time.sleep(move_duration)
+                if (current_pos >= self.max_angle and gain > 0) or (current_pos <= self.min_angle and gain < 0):
+                    gain = -gain
+                    self._print_with_timestamp(
+                        f"safety stop: joint at {current_pos:.1f}°, reversing gain -> {gain}",
+                        total_start_time
+                    )
+                    self._apply_gain(gain)
+                else:
+                    self._apply_gain(gain)
 
-            if method == "StopStart":
+                sleep_time = min(step, remaining, duration - elapsed)
+                time.sleep(sleep_time)
+                remaining -= sleep_time
+                elapsed = time.time() - block_start_time
+
+            if method == "StopStart" and elapsed < duration:
                 self._stop_joint()
                 time.sleep(1.0)
+                elapsed = time.time() - block_start_time
 
-            elapsed = time.time() - start_time
-
-        print(f"{method} block finished. Stopping {self.joint} and returning to zero.")
         self._stop_joint()
-        self.data_collector.stopDataCollection()
+        self._print_with_timestamp(
+            f"{method} block finished. Stopping.", total_start_time
+        )
 
     def run(self):
+        total_start_time = time.time()
+        self.data_collector.startDataCollection()
+
         for i in range(self.blocks):
             method = "QuickChange" if i % 2 == 0 else "StopStart"
-            print(f"\n=== Starting Block {i+1}/{self.blocks} ({method}) ===")
-            self._run_block(method)
-        print("\nSystem identification run complete!")
+            self._print_with_timestamp(f"\n=== Starting Block {i+1}/{self.blocks} ({method}) ===", total_start_time)
+            self._run_block(method, duration=60.0, total_start_time=total_start_time)
+
+        self.data_collector.stopDataCollection()
+        total_elapsed = time.time() - total_start_time
+        minutes = int(total_elapsed // 60)
+        seconds = int(total_elapsed % 60)
+        print(f"\nsystem identification run complete! Duration: {minutes:02d}:{seconds:02d}")
