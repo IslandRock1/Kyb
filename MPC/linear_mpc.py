@@ -3,7 +3,7 @@ import casadi as ca
 import do_mpc
 
 class LinearMPC:
-    def __init__(self, A, B, C, D, Q, R, n_horizon=20, t_step=0.1):
+    def __init__(self, A, B, C, D, Q, R, n_horizon, t_step):
         self.A, self.B, self.C, self.D = A, B, C, D
         self.nx, self.nu = A.shape[0], B.shape[1]
         self.Q, self.R = Q, R
