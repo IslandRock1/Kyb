@@ -5,7 +5,7 @@ import do_mpc
 class LinearMPC:
     def __init__(self, A, B, C, D, Q, R, n_horizon, t_step):
         self.A, self.B, self.C, self.D = A, B, C, D
-        self.nx, self.nu = A.shape[0], B.shape[1]
+        self.nx, self.nu, self.ny = A.shape[0], B.shape[1], C.shape[0]
         self.Q, self.R = Q, R
         self.n_horizon = n_horizon
         self.t_step = t_step
@@ -19,10 +19,10 @@ class LinearMPC:
         self.x = self.model.set_variable(var_type='_x', var_name='x', shape=(self.nx, 1))
         self.u = self.model.set_variable(var_type='_u', var_name='u', shape=(self.nu, 1))
 
-        x_next = ca.mtimes(ca.SX(self.A), self.x) + ca.mtimes(ca.SX(self.B), self.u)
+        x_next = ca.mtimes(ca.DM(self.A), self.x) + ca.mtimes(ca.DM(self.B), self.u)
         self.model.set_rhs('x', x_next)
 
-        y = ca.mtimes(self.C, self.x) + ca.mtimes(self.D, self.u)
+        y = ca.mtimes(ca.DM(self.C), self.x) + ca.mtimes(ca.DM(self.D), self.u)
         self.model.set_expression('y', y)
 
         self.model.setup()
@@ -36,10 +36,15 @@ class LinearMPC:
             store_full_solution=True
         )
 
-        lterm = ca.mtimes([self.x.T, self.Q, self.x]) + ca.mtimes([self.u.T, self.R, self.u])
-        mterm = ca.mtimes([self.x.T, self.Q, self.x])
+        x = self.mpc.model.x
+        u = self.mpc.model.u
+        y = ca.mtimes(ca.DM(self.C), x) + ca.mtimes(ca.DM(self.D), u)
+
+        lterm = ca.mtimes([y.T, self.Q, y]) + ca.mtimes([self.u.T, self.R, self.u])
+        mterm = ca.mtimes([y.T, self.Q, y])
+
         self.mpc.set_objective(lterm=lterm, mterm=mterm)
-        self.mpc.set_rterm(ca.SX(self.R))
+        self.mpc.set_rterm(u=self.R[0,0])
 
         self.mpc.bounds['lower', '_u', 'u'] = -1.0
         self.mpc.bounds['upper', '_u', 'u'] = 1.0
@@ -56,31 +61,41 @@ class LinearMPC:
         self.mpc.x0 = x0
         self.mpc.u0 = np.zeros((self.nu, 1))
         self.mpc.set_initial_guess()
+        self.sim.x0 = x0  # Also set simulator initial state
 
     def step(self, x_current):
         """Compute the control input for a given state."""
         return self.mpc.make_step(x_current)
 
     @staticmethod
-    def plot_results(time, x_log, u_log, y_log, Q, R):
+    def plot_results(time, x_log, u_log, y_log, Q, R, title = None):
         import matplotlib.pyplot as plt
         fig, axs = plt.subplots(3, 1, figsize=(8, 6))
-        fig.suptitle(f"Q: {Q[0,0]}, {Q[1,1]} | R: {R[0,0]}", fontsize=14)
+
+        if (title is None):
+            fig.suptitle(f"Output Cost Q: {Q[0,0]} | Input Cost R: {R[0,0]}", fontsize=14)
+        else:
+            fig.suptitle(title)
 
         axs[0].plot(time, x_log[:, 0], label='x1')
         axs[0].plot(time, x_log[:, 1], label='x2')
         axs[0].legend()
         axs[0].set_ylabel('States')
+        axs[0].grid(True)
 
         axs[1].plot(time, u_log, label='u')
         axs[1].legend()
         axs[1].set_ylabel('Input')
+        axs[1].grid(True)
 
-        axs[2].plot(time, y_log[:, 0], label='y')
+        axs[2].plot(time, y_log, label='y (position)')
         axs[2].legend()
-        axs[2].set_ylabel('Output')
+        axs[2].set_ylabel('Output [deg]')
         axs[2].set_xlabel('Time [s]')
+        axs[2].grid(True)
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
-        plt.savefig(f"Q{Q[0,0]}_{Q[1,1]}_R{R[0,0]}.svg")
+        if (title is None): plt.savefig(f"MPC/Plots/Q{Q[0,0]}_R{R[0,0]}.svg")
+        else: plt.savefig("MPC/Plots/" + title + ".svg")
+
         plt.show()
