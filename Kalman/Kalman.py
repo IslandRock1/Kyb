@@ -79,7 +79,7 @@ class ContactWrenchKalmanFilter:
         Hc[3:6, 6:9] = np.eye(3)            # +T
         return Hc @ self.x
 
-# --- Example usage skeleton ---
+# This is how we use it:
 
 # Assume m, r_s, Q, Rf, Ra set as in the paper for your system.
 kf = ContactWrenchKalmanFilter(m=0.932, r_s=[0,0,0.044], Q=np.eye(9)*1e-3,

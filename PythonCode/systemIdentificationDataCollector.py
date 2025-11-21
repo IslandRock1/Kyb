@@ -1,110 +1,71 @@
-import serial
+import csv
 import time
 import threading
-import keyboard
 
-class RobotController:
-    def __init__(self, port: str = "COM8", baudrate: int = 115200):
-        try:
-            self.ser = serial.Serial(port, baudrate, timeout=0.01)
-            print(f"Connected to robot on {port}")
-        except Exception as e:
-            raise RuntimeError(f"Could not open serial port {port}: {e}")
+from robotController import RobotController
 
-        self._shoulder_gain = 0
-        self._wrist_gain = 0
-        self._shoulder_angle = 0.0
-        self._wrist_angle = 0.0
+class SystemIdentificationDataCollector:
+    def __init__(self, robot: "RobotController", joint: str, filename: str):
+        self.robot = robot
+        self.joint = joint.lower()
+        if self.joint not in ["shoulder", "wrist"]:
+            raise ValueError("joint must be shoulder or wrist")
+        
+        self.filename = filename
+        self.collecting = False
+        self._data = []
+        self._thread = None
+        self._start_time = None
+        self.movement_description = ""
 
-        self._lock = threading.Lock()
-        self.running = True
+    def _collect_loop(self):
+        sampling_interval = 0.01  # 100 Hz
+        next_sample_time = self._start_time
 
-        threading.Thread(target=self._read_serial_loop, daemon=True).start()
+        while self.collecting:
+            now = time.time()
+            timestamp_s = now - self._start_time  # float seconds
 
-    def _send(self):
-        msg = f"0,0,{self._wrist_gain},{self._shoulder_gain},0,0,0\n"
-        self.ser.write(msg.encode("utf-8"))
-
-    def _read_serial_loop(self):
-        while self.running:
-            try:
-                if self.ser.in_waiting:
-                    line = self.ser.readline().decode(errors="ignore").strip()
-                    parts = line.split(",")
-                    if len(parts) >= 2:
-                        with self._lock:
-                            self._wrist_angle = float(parts[0])
-                            self._shoulder_angle = float(parts[1])
-            except Exception:
-                pass
-
-    def setShoulderGain(self, gain: int):
-        #(-255 to 255) zero position is at 3 oclock
-        self._shoulder_gain = -int(gain)
-        self._send()
-
-    def setWristGain(self, gain: int):
-        #(-255 to 255) zero position is X+ towards table, and Y+ is upwards
-        self._wrist_gain = int(gain)
-        self._send()
-
-    def getShoulderPosition(self) -> float:
-        #(0 to 360) anticlockwise is positive direction, zero position is at 3 oclock
-        with self._lock:
-            return self._shoulder_angle
-
-    def getWristPosition(self) -> float:
-        #(0 to 360) anticlockwise is positive direction
-        with self._lock:
-            return self._wrist_angle
-
-    def stop(self):
-        self._wrist_gain = 0
-        self._shoulder_gain = 0
-        self._send()
-
-    def close(self):
-        self.running = False
-        self.stop()
-        time.sleep(0.1)
-        if self.ser.is_open:
-            self.ser.close()
-        print("Connection closed.")
-
-    def calibrate(self):
-        print("Use arrow keys to move the robot manually. Press Enter to set encoder offsets.")
-        print("Up/Down = Shoulder, Left/Right = Wrist")
-
-        while True:
-            if keyboard.is_pressed("up"):
-                self.setShoulderGain(50)
-            elif keyboard.is_pressed("down"):
-                self.setShoulderGain(-50)
+            if self.joint == "shoulder":
+                pos = self.robot.getShoulderPosition()
+                gain = self.robot._shoulder_gain
             else:
-                self.setShoulderGain(0)
+                pos = self.robot.getWristPosition()
+                gain = self.robot._wrist_gain
 
-            if keyboard.is_pressed("right"):
-                self.setWristGain(50)
-            elif keyboard.is_pressed("left"):
-                self.setWristGain(-50)
-            else:
-                self.setWristGain(0)
+            self._data.append([timestamp_s, pos, gain, self.movement_description])
 
-            if keyboard.is_pressed("enter"):
-                with self._lock:
-                    self._shoulder_offset = self._shoulder_angle
-                    self._wrist_offset = self._wrist_angle
-                self.stop()
-                print(f"Calibration done. Shoulder offset: {self._shoulder_offset:.2f}, Wrist offset: {self._wrist_offset:.2f}")
-                break
+            # wait until next sample
+            next_sample_time += sampling_interval
+            sleep_time = max(0, next_sample_time - time.time())
+            time.sleep(sleep_time)
 
-            time.sleep(0.05)
 
-if __name__ == "__main__":
-    robot = RobotController("COM8", 115200)
-    robot.calibrate()
+    def startDataCollection(self):
+        if self.collecting:
+            print("Data collection already running.")
+            return
+        self.movement_description = "No Movement"
+        self._data = []
+        self._start_time = time.time()
+        self.collecting = True
+        self._thread = threading.Thread(target=self._collect_loop, daemon=True)
+        self._thread.start()
+        print(f"Started data collection for {self.joint} joint.")
 
-    time.delay(10)
+    def stopDataCollection(self):
+        if not self.collecting:
+            print("Data collection not running.")
+            return
+        self.collecting = False
+        self._thread.join()
 
-    robot.close()
-    print("Test finished.")
+        with open(self.filename, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "position", "gain", "movement_description"])
+            writer.writerows(self._data)
+
+        print(f"Data collection stopped. Saved {len(self._data)} samples to {self.filename}.")
+
+    def setMovementDescription(self, description: str):
+        self.movement_description = description

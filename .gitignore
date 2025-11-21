@@ -4,3 +4,7 @@
 .vscode
 PythonCode/DATA
 PythonCode/Plots
+.csv
+.pyc
+PythonCode/__pycache__/robotController.cpython-312.pyc
+PythonCode/__pycache__/systemIdentificationDataCollector.cpython-312.pyc

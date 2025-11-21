@@ -1,5 +1,15 @@
+from dataclasses import dataclass
 import numpy as np
 from linear_mpc import LinearMPC
+
+@dataclass
+class System:
+    A: np.ndarray
+    B: np.ndarray
+    C: np.ndarray
+    D: np.ndarray
+    Q: np.ndarray
+    R: np.ndarray
 
 def run_real_system(read_state_func, send_control_func, N=100, t_step=0.1):
     """
