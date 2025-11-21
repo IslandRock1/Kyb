@@ -1,6 +1,18 @@
 from time import perf_counter
 import numpy as np
 from linear_mpc import LinearMPC
+from PID import  PID
+
+out_to_angle = np.array([
+    [np.float64(-846.2697104702287), np.float64(-105.48431381639631)],
+])
+
+out_to_angle_vel = np.array([
+    np.float64(-2.10591), np.float64(2568.82883)
+])
+
+pid = PID(0.1, 0.0, 0.0, 0.0, (-1.0, 1.0), 0.01)
+mode = "PID"
 
 def getModelWrist():
     A = np.array([
@@ -27,48 +39,32 @@ def simulate_system():
     A, B, C, D = getModelWrist()
 
     # MPC cost matrices
-    Q = np.diag([1.0, 1.0])
+    Q = np.diag([100.0])
     R = np.diag([1.0])
 
     # Initial state
-    x0 = np.array([[0.0],
-                   [0.0]])
+    x0 = np.array([[-0.04375614810285318],
+                   [-7.897071645171517e-05]])
 
     mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=20, t_step=0.01)
     mpc_system.init_controller(x0)
 
     x_current = x0
     x_log, u_log = [], []
-    N = 60
-
-    x_curr = x0
-    for _ in range(2):
-        x_curr = mpc_system.sim.make_step(np.array([[255.0]]))
-    # for _ in range(1):
-    #     x_curr = mpc_system.sim.make_step(np.array([[0.0]]))
-
-    print()
-    print(f"x = np.array([[{x_curr[0,0]}, {x_curr[1,0]}]])")
-    print(a0 := C @ x_curr)
-
-    x_curr = mpc_system.sim.make_step(np.array([[0.0]]))
-    print(f"np.array([[{x_curr[0,0]}, {x_curr[1,0]}]])")
-    print(a1 := C @ x_curr)
-
-    print(f"da: {a1 - a0}, dt: 0.01 => {(a1 - a0) / 0.01}")
-    print(f"angle_vel = {(a1 - a0) / 0.01}")
-
-    exit()
+    N = 200
 
     sum_time = 0.0
     tot_steps = 0
     for _ in range(N):
         t0 = perf_counter()
-        u0 = mpc_system.step(x_current)
+        if (mode == "PID"): u0 = np.array([[pid.update(float(C @ x_current))]])
+        else: u0 = mpc_system.step(x_current)
         t1 = perf_counter()
-        x_current = mpc_system.sim.make_step(u0)
+
+        x_current = mpc_system.sim.make_step(u0 * 255.0)
+
         x_log.append(x_current.flatten())
-        u_log.append(float(u0))
+        u_log.append(float(u0 * 255.0))
 
         sum_time += t1 - t0
         tot_steps += 1
@@ -80,7 +76,10 @@ def simulate_system():
     y_log = (C @ x_log.T).T
     time = np.arange(N) * 0.01
 
-    LinearMPC.plot_results(time, x_log, u_log, y_log, Q, R)
+    if (mode == "PID"):
+        LinearMPC.plot_results(time, x_log, u_log, y_log, Q, R, f"Kp{pid.Kp}_Ki{pid.Ki}_Kd{pid.Kd}")
+    else:
+        LinearMPC.plot_results(time, x_log, u_log, y_log, Q, R)
 
 if __name__ == "__main__":
     simulate_system()
