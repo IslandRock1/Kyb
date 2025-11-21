@@ -1,26 +1,14 @@
-import pandas as pd
+from blockSystemIdentification import BlockSystemIdentification
+from robotController import RobotController
 
-CSV_FILE = "wrist_data_1.csv"
+def main():
+    robot = RobotController()
+    robot.calibrate()
 
-def load_data(filename=CSV_FILE):
-    df = pd.read_csv(filename, header=None, names=["time_ms", "position_deg", "gain", "description"])
+    system_id = BlockSystemIdentification(robot, "wrist", "wrist_data_2_min.csv", blocks = 2)
+    system_id.run()
 
-    df["time_ms"] = pd.to_numeric(df["time_ms"], errors="coerce")
-    df["position_deg"] = pd.to_numeric(df["position_deg"], errors="coerce")
-    df["gain"] = pd.to_numeric(df["gain"], errors="coerce")
-
-    #removes NaN values
-    df = df.dropna(subset=["time_ms", "position_deg", "gain"])
-
-    df["time_s"] = df["time_ms"] / 1000.0
-
-    timestamps = df["time_s"].values
-    positions = df["position_deg"].values
-    gains = df["gain"].values
-
-    return timestamps, positions, gains, df
-
-
+    robot.moveWristPID(0.0, timeout=5.0)
+    robot.close()
 if __name__ == "__main__":
-    timestamps, positions, gains, df = load_data()
-    print(df.head())
+    main()

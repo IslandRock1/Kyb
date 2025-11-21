@@ -19,9 +19,13 @@ class SystemIdentificationDataCollector:
         self.movement_description = ""
 
     def _collect_loop(self):
+        sampling_interval = 0.01  # 100 Hz
+        next_sample_time = self._start_time
+
         while self.collecting:
-            timestamp_ms = int((time.time() - self._start_time) * 1000)
-            
+            now = time.time()
+            timestamp_s = now - self._start_time  # float seconds
+
             if self.joint == "shoulder":
                 pos = self.robot.getShoulderPosition()
                 gain = self.robot._shoulder_gain
@@ -29,8 +33,13 @@ class SystemIdentificationDataCollector:
                 pos = self.robot.getWristPosition()
                 gain = self.robot._wrist_gain
 
-            self._data.append([timestamp_ms, pos, gain, self.movement_description])
-            time.sleep(0.01)
+            self._data.append([timestamp_s, pos, gain, self.movement_description])
+
+            # wait until next sample
+            next_sample_time += sampling_interval
+            sleep_time = max(0, next_sample_time - time.time())
+            time.sleep(sleep_time)
+
 
     def startDataCollection(self):
         if self.collecting:

@@ -108,3 +108,23 @@ class BlockSystemIdentification:
         minutes = int(total_elapsed // 60)
         seconds = int(total_elapsed % 60)
         print(f"\nsystem identification run complete! Duration: {minutes:02d}:{seconds:02d}")
+
+if __name__ == "__main__":
+    robot = RobotController()
+    robot.calibrate()
+
+    block_sysid = BlockSystemIdentification(
+        robot=robot,
+        joint="wrist",
+        filename="wrist_block_2min",
+        blocks=2
+    )
+
+    print("Starting block system identification...")
+    block_sysid.run()
+
+    print("Stopping robot...")
+    robot.moveWristPID(0, 5)
+    robot.stop()
+    robot.close()
+    print("Block system identification complete.")
