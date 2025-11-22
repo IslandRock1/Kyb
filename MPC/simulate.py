@@ -11,7 +11,7 @@ out_to_angle_vel = np.array([
     np.float64(-2.10591), np.float64(2568.82883)
 ])
 
-pid = PID(0.1, 0.0, 0.0, 0.0, (-1.0, 1.0), 0.01)
+pid = PID(0.1, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
 mode = "PID"
 
 def getModelWrist():
@@ -39,7 +39,7 @@ def simulate_system():
     A, B, C, D = getModelWrist()
 
     # MPC cost matrices
-    Q = np.diag([100.0])
+    Q = np.diag([100.0, 10.0])
     R = np.diag([1.0])
 
     # Initial state
@@ -61,10 +61,10 @@ def simulate_system():
         else: u0 = mpc_system.step(x_current)
         t1 = perf_counter()
 
-        x_current = mpc_system.sim.make_step(u0 * 255.0)
+        x_current = mpc_system.sim.make_step(u0)
 
         x_log.append(x_current.flatten())
-        u_log.append(float(u0 * 255.0))
+        u_log.append(float(u0))
 
         sum_time += t1 - t0
         tot_steps += 1
@@ -74,12 +74,13 @@ def simulate_system():
     x_log = np.array(x_log)
     u_log = np.array(u_log)
     y_log = (C @ x_log.T).T
+    y1_log = (out_to_angle_vel @ x_log.T).T
     time = np.arange(N) * 0.01
 
     if (mode == "PID"):
-        LinearMPC.plot_results(time, x_log, u_log, y_log, Q, R, f"Kp{pid.Kp}_Ki{pid.Ki}_Kd{pid.Kd}")
+        LinearMPC.plot_results(time, x_log, u_log, y_log, y1_log, Q, R, f"Kp{pid.Kp}_Ki{pid.Ki}_Kd{pid.Kd}")
     else:
-        LinearMPC.plot_results(time, x_log, u_log, y_log, Q, R)
+        LinearMPC.plot_results(time, x_log, u_log, y_log, y1_log, Q, R)
 
 if __name__ == "__main__":
     simulate_system()
