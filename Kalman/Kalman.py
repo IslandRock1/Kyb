@@ -20,7 +20,6 @@ class ContactWrenchKalmanFilter:
             r_s: array-like, shape (3,), estimated mass center in s frame.
             Q: array-like, shape (9,9), process covariance.
             Rf: array-like, shape (6,6), meas. cov. for FTS.
-            Ra: array-like, shape (3,3), meas. cov. for IMU.
             init_state: (optional) array-like, shape (9,), initial state.
             init_cov: (optional) array-like, shape (9,9), initial cov matrix.
         """
@@ -29,8 +28,7 @@ class ContactWrenchKalmanFilter:
         self.r_s = skew(self.r_s_vector)
         self.Q = Q
         self.Rf = Rf
-        self.Ra = Ra
-        self.x = np.zeros(9) if init_state is None else np.array(init_state)  # [a(3), F(3), T(3)]
+        self.x = np.zeros(9) if init_state is None else np.array(init_state)  # [F(3), T(3)]
         self.P = np.eye(9) if init_cov is None else np.array(init_cov)
 
         # State transition (identity)
@@ -40,9 +38,6 @@ class ContactWrenchKalmanFilter:
         self.Hf = np.zeros((6, 9))
         self.Hf[0:3, 3:6] = np.eye(3)      # F
         self.Hf[3:6, 6:9] = np.eye(3)      # T
-
-        self.Ha = np.zeros((3, 9))
-        self.Ha[0:3, 0:3] = np.eye(3)      # a
 
     def predict(self, u, B):
         # Prediction step
@@ -57,19 +52,9 @@ class ContactWrenchKalmanFilter:
         self.x = self.x + K @ y
         self.P = self.P - K @ self.Hf @ self.P
 
-    # might not need this part? We don't use IMU yet
-    def update_IMU(self, za):
-        # Correction step for IMU
-        S = self.Ha @ self.P @ self.Ha.T + self.Ra
-        K = self.P @ self.Ha.T @ np.linalg.inv(S)
-        y = za - self.Ha @ self.x
-        self.x = self.x + K @ y
-        self.P = self.P - K @ self.Ha @ self.P
-
     def contact_wrench_estimate(self):
         # Output equation (Skrede eq. 22): z_c = [-m*I3 | I3 | 0; -m*[r_s]_x | 0 | I3] x
         m, r_s = self.m, self.r_s
-        # Build H_c (6x9)
         Hc = np.zeros((6, 9))
         # Force row: -m a + F
         Hc[0:3, 0:3] = -m * np.eye(3)       # -m a
@@ -81,9 +66,9 @@ class ContactWrenchKalmanFilter:
 
 # This is how we use it:
 
-# Assume m, r_s, Q, Rf, Ra set as in the paper for your system.
+# Assume m, r_s, Q, Rf set as in the paper for the system.
 kf = ContactWrenchKalmanFilter(m=0.932, r_s=[0,0,0.044], Q=np.eye(9)*1e-3,
-                               Rf=np.eye(6)*1e-2, Ra=np.eye(3)*1e-1)
+                               Rf=np.eye(6)*1e-2)
 
 while data_available:
     # Compute control input (u) and process matrix (B) as in text eq (15-16)
@@ -100,9 +85,6 @@ while data_available:
     # Sensor update
     zf = ... # FTS measurement (6,)
     kf.update_FTS(zf)
-
-    za = ... # IMU measurement (3,)
-    kf.update_IMU(za)
 
     wrench = kf.contact_wrench_estimate()      # (6,)
     # wrench[0:3]: estimated force, wrench[3:6]: estimated torque
