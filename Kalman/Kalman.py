@@ -12,7 +12,7 @@ def skew(v):
     ])
 
 class ContactWrenchKalmanFilter:
-    def __init__(self, m, r_s, Q, Rf, Ra, init_state=None, init_cov=None):
+    def __init__(self, m, r_s, Q, Rf, init_state=None, init_cov=None):
         """Initializes KF.
 
         Args:
