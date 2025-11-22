@@ -29,6 +29,7 @@ class LinearMPC:
 
     def _setup_mpc(self):
         self.mpc = do_mpc.controller.MPC(self.model)
+        self.mpc.settings.supress_ipopt_output()
         self.mpc.set_param(
             n_horizon=self.n_horizon,
             t_step=self.t_step,
