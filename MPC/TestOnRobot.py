@@ -144,7 +144,7 @@ def get_mpc(t: Test):
 
     x0 = np.array([t.currentAngleValues[0], t.currentAngleVel[0]]).T
     print(f"x0: {x0}")
-    mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=20, t_step=t_step)
+    mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=10, t_step=t_step)
     mpc_system.init_controller(x0)
     print("Setup complete.")
     return mpc_system
@@ -159,7 +159,7 @@ def main():
     pidLogg = Logger([], [], [], [])
     mpcLogg = Logger([], [], [], [])
 
-    mode = "PID"
+    mode = "MPC"
     t0_glob = perf_counter()
 
     if (mode == "PID"):
@@ -181,6 +181,7 @@ def main():
             while (perf_counter() - t0 < 0.01):
                 t_test += 1
 
+        print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(pidLogg.angle)}")
         saveLogg(pidLogg, "PIDLogg")
 
     elif (mode == "MPC"):
@@ -201,6 +202,7 @@ def main():
             mpcLogg.time.append(perf_counter())
             mpcLogg.power.append(float(u0))
 
+        print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(mpcLogg.angle)}")
         saveLogg(mpcLogg, "MPCLogg")
 
 
