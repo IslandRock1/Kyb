@@ -36,18 +36,21 @@ class LinearMPC:
             store_full_solution=True
         )
 
-        x = self.mpc.model.x
-        u = self.mpc.model.u
-        y = ca.mtimes(ca.DM(self.C), x) + ca.mtimes(ca.DM(self.D), u)
+        lterm = ca.mtimes([self.x.T, self.Q, self.x]) + ca.mtimes([self.u.T, self.R, self.u])
+        mterm = ca.mtimes([self.x.T, self.Q, self.x])
 
-        lterm = ca.mtimes([y.T, self.Q, y]) + ca.mtimes([self.u.T, self.R, self.u])
-        mterm = ca.mtimes([y.T, self.Q, y])
+        # x = self.mpc.model.x
+        # u = self.mpc.model.u
+        # y = ca.mtimes(ca.DM(self.C), x) + ca.mtimes(ca.DM(self.D), u)
+        #
+        # lterm = ca.mtimes([y.T, self.Q, y]) + ca.mtimes([self.u.T, self.R, self.u])
+        # mterm = ca.mtimes([y.T, self.Q, y])
 
         self.mpc.set_objective(lterm=lterm, mterm=mterm)
         self.mpc.set_rterm(u=self.R[0,0])
 
-        self.mpc.bounds['lower', '_u', 'u'] = -1.0
-        self.mpc.bounds['upper', '_u', 'u'] = 1.0
+        self.mpc.bounds['lower', '_u', 'u'] = -255.0
+        self.mpc.bounds['upper', '_u', 'u'] = 255.0
 
         self.mpc.setup()
 
@@ -68,12 +71,12 @@ class LinearMPC:
         return self.mpc.make_step(x_current)
 
     @staticmethod
-    def plot_results(time, x_log, u_log, y_log, Q, R, title = None):
+    def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
         import matplotlib.pyplot as plt
         fig, axs = plt.subplots(3, 1, figsize=(8, 6))
 
         if (title is None):
-            fig.suptitle(f"Output Cost Q: {Q[0,0]} | Input Cost R: {R[0,0]}", fontsize=14)
+            fig.suptitle(f"Output Cost Q: {Q[0,0]},{Q[1,1]} | Input Cost R: {R[0,0]}", fontsize=14)
         else:
             fig.suptitle(title)
 
@@ -83,14 +86,15 @@ class LinearMPC:
         axs[0].set_ylabel('States')
         axs[0].grid(True)
 
-        axs[1].plot(time, u_log, label='u')
+        axs[1].plot(time, u_log * 12.0 / 255.0, label='u')
         axs[1].legend()
-        axs[1].set_ylabel('Input')
+        axs[1].set_ylabel('Input [volt]')
         axs[1].grid(True)
 
-        axs[2].plot(time, y_log, label='y (position)')
+        axs[2].plot(time, y_log, label='angle')
+        axs[2].plot(time, y1_log, label = 'angle velocity')
         axs[2].legend()
-        axs[2].set_ylabel('Output [deg]')
+        axs[2].set_ylabel('Output [deg v deg/s]')
         axs[2].set_xlabel('Time [s]')
         axs[2].grid(True)
 
