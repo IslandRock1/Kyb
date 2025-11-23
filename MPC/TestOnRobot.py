@@ -1,6 +1,7 @@
 
 import serial
 import numpy as np
+import threading
 from dataclasses import dataclass, asdict
 import json
 from time import perf_counter
@@ -61,9 +62,24 @@ class Test:
         self.ser = serial.Serial("COM5", 115200, timeout=0.1)
         self.serialData = SerialData(0.0, 0.0, 0, 0, True, True, False)
 
-        self.prevMotorReading = perf_counter()
-        self.currentAngleVel = [0.0, 0.0]
-        self.currentAngleValues = [0.0, 0.0]
+        self._prevMotorReading = perf_counter()
+        self._currentAngleVel = [0.0, 0.0]
+        self._currentAngleValues = [0.0, 0.0]
+
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self.read_motor, daemon=True)
+        self._data_lock = threading.Lock()
+        self._serial_lock = threading.Lock()
+
+        self._thread.start()
+
+    def get_data(self):
+        with self._data_lock:
+            return self._currentAngleValues, self._currentAngleVel
+
+    def stop(self):
+        self._stop_event.set()
+        self._thread.join()
 
     def send_values(self):
         """Send current values to ESP32"""
@@ -73,37 +89,53 @@ class Test:
             f"{int(self.serialData.positionMode0)},{int(self.serialData.positionMode1)},{int(self.serialData.doResetAngles)}\n"
         )
 
-        if (self.ser is not None):
-            self.ser.write(msg.encode("utf-8"))
+        with self._serial_lock:
+            if (self.ser is not None):
+                self.ser.write(msg.encode("utf-8"))
+
+    def format_line(self, line):
+        with self._data_lock:
+            prevReading = self._prevMotorReading
+            angle = self._currentAngleValues
+            vel = self._currentAngleVel
+
+            self._prevMotorReading = perf_counter()
+
+        values = [float(x) for x in line.split(",")][0:4]
+        dt = perf_counter() - prevReading
+
+        new_vel0 = (values[0] - angle[0]) / dt
+        new_vel1 = (values[1] - angle[1]) / dt
+
+
+        vel[0] = vel[0] * 0.0 + new_vel0 * 1.0
+        vel[1] = vel[1] * 0.0 + new_vel1 * 1.0
+
+        with self._data_lock:
+            self._currentAngleValues = values
+            self._currentAngleVel = vel
 
     def read_motor(self):
-        try:
-            if self.ser.in_waiting:
+        while not self._stop_event.is_set():
+            try:
                 latest = None
-                while self.ser.in_waiting:
-                    latest = self.ser.readline().decode(errors="ignore").strip()
+                with self._serial_lock:
+                    while self.ser.in_waiting:
+                        latest = self.ser.readline().decode(errors="ignore").strip()
 
                 if latest is None:
                     return  # nothing to process
 
-                line = latest
+                self.format_line(latest)
 
-                values = [float(x) for x in line.split(",")][0:4]
-                dt = perf_counter() - self.prevMotorReading
-
-                new_vel0 = (values[0] - self.currentAngleValues[0]) / dt
-                new_vel1 = (values[1] - self.currentAngleValues[1]) / dt
-
-                self.currentAngleVel[0] = self.currentAngleVel[0] * 0.0 + new_vel0 * 1.0
-                self.currentAngleVel[1] = self.currentAngleVel[1] * 0.0 + new_vel1 * 1.0
-                self.currentAngleValues = values
-
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
 
 def printWristStates(t: Test, affix: str = None):
-    angle = float(t.currentAngleValues[0])
-    vel = float(t.currentAngleVel[0])
+    angle, vel = t.get_data()
+
+    angle = float(angle[0])
+    vel = float(vel[0])
     if (affix is not None):
         print(f"Theta: {angle:.2f} | Vel: {vel:.2f} | {affix}")
     else:
@@ -122,14 +154,14 @@ def setup(t: Test):
     t.serialData.positionMode1 = True
     t.send_values()
 
-    while (t.currentAngleValues[0] < 85.0):
-        t.read_motor()
+    angle, vel = t.get_data()
+    while (angle < 85.0):
+        angle, vel = t.get_data()
         printWristStates(t)
 
     t0 = perf_counter()
     while (perf_counter() - t0 < 5.0):
         # Wait for 5 seconds.
-        t.read_motor()
         printWristStates(t, " Waiting..")
 
     t.serialData.positionMode0 = False
@@ -142,7 +174,8 @@ def get_mpc(t: Test):
 
     t_step = 0.01
 
-    x0 = np.array([t.currentAngleValues[0], t.currentAngleVel[0]]).T
+    angle, vel = t.get_data()
+    x0 = np.array([angle[0], vel[0]]).T
     print(f"x0: {x0}")
     mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=10, t_step=t_step)
     mpc_system.init_controller(x0)
@@ -156,54 +189,38 @@ def main():
     mpc_system = get_mpc(t)
     pid = PID(5.0, 0.0, 0.0, 0.0, (-255, 255), 0.01)
 
-    pidLogg = Logger([], [], [], [])
-    mpcLogg = Logger([], [], [], [])
-
     mode = "MPC"
     t0_glob = perf_counter()
+    max_run_time = 10.0
+    logg = Logger([], [], [], [])
+    timeSinceStart = 0.0
 
-    if (mode == "PID"):
-        while ((timeSinceStart := perf_counter() - t0_glob) < 5.0):
+    if (mode != "PID" and mode != "MPC"): raise ValueError("Invalid mode.")
+    while (timeSinceStart < max_run_time):
+        timeSinceStart = perf_counter() - t0_glob
+        angle, vel = t.get_data()
+
+        if (mode == "PID"):
             t0 = perf_counter()
-            t.read_motor()
-            u0 = pid.update(t.currentAngleValues[0])
-
-            t.serialData.power0 = int(u0)
-            t.send_values()
-            printWristStates(t, f" Power: {int(u0)} | Time: {timeSinceStart:.1f}")
-
-            pidLogg.angle.append(t.currentAngleValues[0])
-            pidLogg.vel.append(t.currentAngleVel[0])
-            pidLogg.time.append(perf_counter())
-            pidLogg.power.append(u0)
-
-            t_test = 0
-            while (perf_counter() - t0 < 0.01):
-                t_test += 1
-
-        print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(pidLogg.angle)}")
-        saveLogg(pidLogg, "PIDLogg")
-
-    elif (mode == "MPC"):
-        while ((timeSinceStart := perf_counter() - t0_glob) < 5.0):
-            t.read_motor()
-            x_current = np.array([t.currentAngleValues[0], t.currentAngleVel[0]]).T
+            u0 = pid.update(angle[0])
+            t1 = perf_counter()
+        elif (mode == "MPC"):
+            x_current = np.array([angle[0], vel[0]]).T
 
             t0 = perf_counter()
             u0 = mpc_system.step(x_current)
             t1 = perf_counter()
 
-            t.serialData.power0 = int(u0)
-            t.send_values()
-            printWristStates(t, f" Power: {int(u0)} | Time: {timeSinceStart:.1f} | Steptime: {t1 - t0}")
+        t.serialData.power0 = int(u0)
+        t.send_values()
+        printWristStates(t, f" Power: {int(u0)} | Time: {timeSinceStart:.1f} | Steptime: {t1 - t0}")
 
-            mpcLogg.angle.append(t.currentAngleValues[0])
-            mpcLogg.vel.append(t.currentAngleVel[0])
-            mpcLogg.time.append(perf_counter())
-            mpcLogg.power.append(float(u0))
-
-        print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(mpcLogg.angle)}")
-        saveLogg(mpcLogg, "MPCLogg")
+        logg.angle.append(angle[0])
+        logg.vel.append(vel[0])
+        logg.time.append(perf_counter())
+        logg.power.append(float(u0))
+    print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(logg.angle)}. Datapoints per seconds = {len(logg.angle) / (perf_counter() - t0_glob)}.")
+    saveLogg(logg, f"{mode}Logg")
 
 
 if __name__ == "__main__": main()
