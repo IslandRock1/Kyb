@@ -28,25 +28,31 @@ def get_x0(num_steps_active, num_steps_passive):
     x0 = np.zeros((4, 1))
     out = C @ x0
 
-    for _ in range(num_steps_active):
-        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+    num_active = 0
+    num_passive = 0
+
+    for num_active in range(num_steps_active):
+        print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
         x0 = A @ x0 + B @ u
         out = C @ x0
 
-    for _ in range(num_steps_passive):
-        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+    for num_passive in range(num_steps_passive):
+        print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
         x0 = A @ x0
         out = C @ x0
 
-    # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+    print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+
+    print()
+    print(out)
     return x0
 
 def simulate_system():
     A, B, C, D = getCompleteModel()
 
     # MPC cost matrices
-    Q = np.diag([100000.0, 10000.0, 100000.0, 10000.0])
-    R = np.diag([0.00001, 0.00001])
+    Q = np.diag([1000000.0, 1000000.0, 10000.0, 10000.0])
+    R = np.diag([0.000001, 0.000001])
 
     # Initial state
     x0 = get_x0(200, 1000) # Shoulder: 93 deg | Wrist: 74 deg
@@ -68,8 +74,8 @@ def simulate_system():
         t0 = perf_counter()
         if (mode == "PID"):
             outputs = (C @ x_current)
-            u_from_pid0 = -pid0.update(outputs[0,0])
-            u_from_pid1 = pid1.update(outputs[1,0])
+            u_from_pid0 = pid0.update(outputs[0,0])
+            u_from_pid1 = pid1.update(outputs[2,0])
             u0 = np.array([[u_from_pid0], [u_from_pid1]])
         else:
             u0 = mpc_system.step(x_current)

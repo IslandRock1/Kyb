@@ -44,7 +44,7 @@ def get_model_wrist():
 
     return A, B, C, D
 
-def getCompleteModel():
+def getCompleteModelFromIndividual():
 
     AShoulder, BShoulder, CShoulder, DShoulder = get_model_shoulder()
     AWrist, BWrist, CWrist, DWrist = get_model_wrist()
@@ -62,6 +62,36 @@ def getCompleteModel():
     C[1,2:] = CWrist
 
     D = np.array([[0.0]])
+
+    return A, B, C, D
+
+def getCompleteModel():
+    A = np.array([[np.float64(0.9999976569526424),          np.float64(-9.160143138198587e-06), np.float64(-0.0004257708011442182), np.float64(-0.00035086091730667196)],
+                  [np.float64(1.727268799697247e-05), np.float64(0.999990392439614), np.float64(-0.0005075781244622638), np.float64(0.000386153652274123)],
+                  [np.float64(0.0012246538538164004), np.float64(-0.0022024204733846003), np.float64(0.896688079038486), np.float64(0.0022718901206865553)],
+                  [np.float64(-0.0002572853227708653), np.float64(-0.0011503783795186694), np.float64(0.0027134622622971426), np.float64(0.8840435600426209)],
+                  ])
+
+    B = np.array([
+        [np.float64(-5.130234624600828e-07), np.float64(-3.864981555405107e-07)],
+        [np.float64(2.5524460134423797e-06), np.float64(-5.888735497623858e-09)],
+        [np.float64(4.4891339011425385e-05), np.float64(6.843206808386824e-05)],
+        [np.float64(7.320567113462283e-05), np.float64(-5.885263266275326e-05)],
+    ])
+
+    C = np.array([
+        [np.float64(-530.0194089374477), np.float64(528.1787832390378),   np.float64(-14.799209025171988), np.float64(-14.392447777995834)],
+        [np.float64(-0.4488393014090485), np.float64(5.211129355383186), np.float64(141.3909283438485), np.float64(190.667561330461)],
+        [np.float64(-2215.242775047159), np.float64(-806.3831316057453), np.float64(-1.93158380335166), np.float64(14.06810683716181)],
+        [np.float64(-1.3856567366757033), np.float64(1.4256328285072872), np.float64(151.47637397325803), np.float64(-108.46943621129427)],
+    ])
+
+    D = np.array([
+        [np.float64(0.0), np.float64(0.0)],
+        [np.float64(0.0), np.float64(0.0)],
+        [np.float64(0.0), np.float64(0.0)],
+        [np.float64(0.0), np.float64(0.0)],
+    ])
 
     return A, B, C, D
 
@@ -88,7 +118,7 @@ def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
     axs[1].grid(True)
 
     axs[2].plot(time, y_log[:,0], label='angle1')
-    axs[2].plot(time, y_log[:,1], label='angle2')
+    axs[2].plot(time, y_log[:,2], label='angle2')
 
     # axs[2].plot(time, y1_log, label = 'angle velocity')
     axs[2].legend()
@@ -101,3 +131,4 @@ def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
     else: plt.savefig("MPC/Plots/" + title + ".svg")
 
     plt.show()
+
