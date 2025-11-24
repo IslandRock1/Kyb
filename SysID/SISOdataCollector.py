@@ -2,7 +2,7 @@ import csv
 import time
 import threading
 
-from robotController import RobotController
+from PythonCode.robotController import RobotController
 
 class SystemIdentificationDataCollector:
     def __init__(self, robot: "RobotController", joint: str, filename: str):

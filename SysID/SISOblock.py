@@ -1,7 +1,7 @@
 import time
 import random
-from robotController import RobotController
-from systemIdentificationDataCollector import SystemIdentificationDataCollector
+from PythonCode.robotController import RobotController
+from SysID.SISOdataCollector import SystemIdentificationDataCollector
 
 class BlockSystemIdentification:
     def __init__(self, robot: RobotController, joint: str, filename: str, blocks: int):

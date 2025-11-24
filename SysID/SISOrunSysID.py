@@ -1,8 +1,8 @@
 import time
 import numpy as np
 import random
-from robotController import RobotController
-from systemIdentificationDataCollector import SystemIdentificationDataCollector
+from PythonCode.robotController import RobotController
+from SysID.SISOdataCollector import SystemIdentificationDataCollector
 
 def apply_gain(robot, joint, value, max_gain=255):
     """Map normalized input [-1,1] to robot gain and apply."""
