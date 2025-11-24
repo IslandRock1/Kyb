@@ -65,26 +65,31 @@ class ContactWrenchKalmanFilter:
         return Hc @ self.x
 
 # This is how we use it:
-
-# Assume m, r_s, Q, Rf set as in the paper for the system.
-kf = ContactWrenchKalmanFilter(m=0.932, r_s=[0,0,0.044], Q=np.eye(9)*1e-3,
-                               Rf=np.eye(6)*1e-2)
-
-while data_available:
-    # Compute control input (u) and process matrix (B) as in text eq (15-16)
-    # Requires current and past orientations for gravity compensation
-    u = ... # (3,) from processed grav diff and scaling
-    B = np.block([
-        [np.eye(3)],
-        [kf.m*np.eye(3)],
-        [kf.m*kf.r_s]
-    ]) # shape (9,3)
-
-    kf.predict(u, B)                           # Predict step
-
-    # Sensor update
-    zf = ... # FTS measurement (6,)
-    kf.update_FTS(zf)
-
-    wrench = kf.contact_wrench_estimate()      # (6,)
-    # wrench[0:3]: estimated force, wrench[3:6]: estimated torque
+if __name__ == '__main__':
+    # This example code will only run if the script is executed directly
+    # It will not run when imported by another script.
+    
+    # Assume m, r_s, Q, Rf set as in the paper for the system.
+    kf = ContactWrenchKalmanFilter(m=0.932, r_s=[0,0,0.044], Q=np.eye(9)*1e-3,
+                                   Rf=np.eye(6)*1e-2)
+    
+    data_available = False # Set to False to prevent the example loop from running
+    
+    while data_available:
+        # Compute control input (u) and process matrix (B) as in text eq (15-16)
+        # Requires current and past orientations for gravity compensation
+        u = ... # (3,) from processed grav diff and scaling
+        B = np.block([
+            [np.eye(3)],
+            [kf.m*np.eye(3)],
+            [kf.m*kf.r_s]
+        ]) # shape (9,3)
+    
+        kf.predict(u, B)                           # Predict step
+    
+        # Sensor update
+        zf = ... # FTS measurement (6,)
+        kf.update_FTS(zf)
+    
+        wrench = kf.contact_wrench_estimate()      # (6,)
+        # wrench[0:3]: estimated force, wrench[3:6]: estimated torque
