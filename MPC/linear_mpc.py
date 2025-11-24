@@ -70,37 +70,3 @@ class LinearMPC:
     def step(self, x_current):
         """Compute the control input for a given state."""
         return self.mpc.make_step(x_current)
-
-    @staticmethod
-    def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
-        import matplotlib.pyplot as plt
-        fig, axs = plt.subplots(3, 1, figsize=(8, 6))
-
-        if (title is None):
-            fig.suptitle(f"Output Cost Q: {Q[0,0]},{Q[1,1]} | Input Cost R: {R[0,0]}", fontsize=14)
-        else:
-            fig.suptitle(title)
-
-        axs[0].plot(time, x_log[:, 0], label='x1')
-        axs[0].plot(time, x_log[:, 1], label='x2')
-        axs[0].legend()
-        axs[0].set_ylabel('States')
-        axs[0].grid(True)
-
-        axs[1].plot(time, u_log * 12.0 / 255.0, label='u')
-        axs[1].legend()
-        axs[1].set_ylabel('Input [volt]')
-        axs[1].grid(True)
-
-        axs[2].plot(time, y_log, label='angle')
-        axs[2].plot(time, y1_log, label = 'angle velocity')
-        axs[2].legend()
-        axs[2].set_ylabel('Output [deg v deg/s]')
-        axs[2].set_xlabel('Time [s]')
-        axs[2].grid(True)
-
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
-        if (title is None): plt.savefig(f"MPC/Plots/Q{Q[0,0]}_R{R[0,0]}.svg")
-        else: plt.savefig("MPC/Plots/" + title + ".svg")
-
-        plt.show()

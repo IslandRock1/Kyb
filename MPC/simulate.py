@@ -3,84 +3,99 @@ import numpy as np
 from linear_mpc import LinearMPC
 from PID import  PID
 
-out_to_angle = np.array([
-    [np.float64(-846.2697104702287), np.float64(-105.48431381639631)],
-])
+from utils import getCompleteModel, plot_results
+print() # Fuck CLion
 
-out_to_angle_vel = np.array([
-    np.float64(-2.10591), np.float64(2568.82883)
-])
-
-pid = PID(0.1, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
+pid0 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
+pid1 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
 mode = "PID"
 
-def getModelWrist():
-    A = np.array([
-        [np.float64(0.9999884770328276), np.float64(-0.010177903510149211)],
-        [np.float64(0.000292092434483153), np.float64(0.838127333943948)],
-    ])
+def get_x0(num_steps_active, num_steps_passive):
+    """
 
-    B = np.array([
-        [np.float64(-1.078485618445664e-06)],
-        [np.float64(1.100257714200534e-05)],
-    ])
+      0,   0 =>  0.000,  0.000
+     10,   0 =>  1.658,  1.540
+    100,   0 => 43.674, 35.410
+    100,  10 => 46.791, 37.680
+    100, 100 => 47.697, 38.048
+      0, 100 =>  0.000,  0.000
 
-    C = np.array([
-        [np.float64(-846.2697104702287), np.float64(-105.48431381639631)],
-    ])
+    """
 
-    D = np.array([
-        [np.float64(0.0)],
-    ])
 
-    return A, B, C, D
+    A, B, C, D = getCompleteModel()
+    u = np.array([[-255.0], [255.0]])
+    x0 = np.zeros((4, 1))
+    out = C @ x0
+
+    for _ in range(num_steps_active):
+        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+        x0 = A @ x0 + B @ u
+        out = C @ x0
+
+    for _ in range(num_steps_passive):
+        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+        x0 = A @ x0
+        out = C @ x0
+
+    # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+    return x0
 
 def simulate_system():
-    A, B, C, D = getModelWrist()
+    A, B, C, D = getCompleteModel()
 
     # MPC cost matrices
-    Q = np.diag([100.0, 10.0])
-    R = np.diag([1.0])
+    Q = np.diag([100000.0, 10000.0, 100000.0, 10000.0])
+    R = np.diag([0.00001, 0.00001])
 
     # Initial state
-    x0 = np.array([[-0.04375614810285318],
-                   [-7.897071645171517e-05]])
+    x0 = get_x0(200, 1000) # Shoulder: 93 deg | Wrist: 74 deg
+    initialState = C @ x0
+    # print(f"Initial state: {initialState[0, 0]:.3f}, {initialState[1,0]:.3f}")
 
     mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=20, t_step=0.01)
     mpc_system.init_controller(x0)
 
     x_current = x0
     x_log, u_log = [], []
-    N = 200
+    N = 500
 
     sum_time = 0.0
     tot_steps = 0
-    for _ in range(N):
+    for i in range(1, N + 1):
+        print(f"{i}/{N} => {100.0 * i / N}%")
+
         t0 = perf_counter()
-        if (mode == "PID"): u0 = np.array([[pid.update(float(C @ x_current))]])
-        else: u0 = mpc_system.step(x_current)
+        if (mode == "PID"):
+            outputs = (C @ x_current)
+            u_from_pid0 = -pid0.update(outputs[0,0])
+            u_from_pid1 = pid1.update(outputs[1,0])
+            u0 = np.array([[u_from_pid0], [u_from_pid1]])
+        else:
+            u0 = mpc_system.step(x_current)
         t1 = perf_counter()
 
         x_current = mpc_system.sim.make_step(u0)
 
         x_log.append(x_current.flatten())
-        u_log.append(float(u0))
+        u_log.append(u0.flatten())
 
         sum_time += t1 - t0
         tot_steps += 1
 
+    print()
     print(f"Total time: {sum_time} | Num steps: {tot_steps} | Avg time: {1000.0 * sum_time / tot_steps} ms.")
 
     x_log = np.array(x_log)
     u_log = np.array(u_log)
     y_log = (C @ x_log.T).T
-    y1_log = (out_to_angle_vel @ x_log.T).T
+    y1_log = (C @ x_log.T).T
     time = np.arange(N) * 0.01
 
     if (mode == "PID"):
-        LinearMPC.plot_results(time, x_log, u_log, y_log, y1_log, Q, R, f"Kp{pid.Kp}_Ki{pid.Ki}_Kd{pid.Kd}")
+        plot_results(time, x_log, u_log, y_log, y1_log, Q, R, f"PID")
     else:
-        LinearMPC.plot_results(time, x_log, u_log, y_log, y1_log, Q, R)
+        plot_results(time, x_log, u_log, y_log, y1_log, Q, R, "MPC")
 
 if __name__ == "__main__":
     simulate_system()
