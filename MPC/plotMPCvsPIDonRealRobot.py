@@ -26,19 +26,19 @@ def compare_logs(title1: str, title2: str):
     fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
 
     # Angle
-    axs[0].plot(t1, log1.angle, label=title1)
-    axs[0].plot(t2, log2.angle, label=title2)
+    axs[0].plot(t1, log1.angle0, label=title1)
+    axs[0].plot(t2, log2.angle0, label=title2)
     axs[0].set_ylabel("Angle")
     axs[0].legend()
 
     # Velocity
-    axs[1].plot(t1, log1.vel, label=title1)
-    axs[1].plot(t2, log2.vel, label=title2)
+    axs[1].plot(t1, log1.vel0, label=title1)
+    axs[1].plot(t2, log2.vel0, label=title2)
     axs[1].set_ylabel("Velocity")
 
     # Power
-    axs[2].plot(t1, log1.power, label=title1)
-    axs[2].plot(t2, log2.power, label=title2)
+    axs[2].plot(t1, log1.power0, label=title1)
+    axs[2].plot(t2, log2.power0, label=title2)
     axs[2].set_ylabel("Power")
     axs[2].set_xlabel("Time (s)")
 

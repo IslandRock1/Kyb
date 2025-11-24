@@ -8,23 +8,23 @@ print() # Fuck CLion
 
 pid0 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
 pid1 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
-mode = "PID"
+mode = "MPC"
 
 def get_x0(num_steps_active, num_steps_passive):
     """
 
-      0,   0 =>  0.000,  0.000
-     10,   0 =>  1.658,  1.540
+      0,   0 =>  0.0, 0.0, 0.0, 0.0
+     10,   0 =>  0.0006330490825515031, -0.007061460517633658, 0.036716916022537405, -0.2053147420398154
     100,   0 => 43.674, 35.410
     100,  10 => 46.791, 37.680
     100, 100 => 47.697, 38.048
-      0, 100 =>  0.000,  0.000
+      0, 100 =>  0.0, 0.0, 0.0, 0.0
 
     """
 
 
     A, B, C, D = getCompleteModel()
-    u = np.array([[-255.0], [255.0]])
+    u = np.array([[255.0], [255.0]])
     x0 = np.zeros((4, 1))
     out = C @ x0
 
@@ -32,20 +32,21 @@ def get_x0(num_steps_active, num_steps_passive):
     num_passive = 0
 
     for num_active in range(num_steps_active):
-        print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
         x0 = A @ x0 + B @ u
         out = C @ x0
 
     for num_passive in range(num_steps_passive):
-        print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
+        # print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
         x0 = A @ x0
         out = C @ x0
 
-    print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}")
-
-    print()
-    print(out)
+    print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}, {out[2,0]:.3f}, {out[3,0]:.3f}")
     return x0
+
+
+get_x0(100, 0)
+exit()
 
 def simulate_system():
     A, B, C, D = getCompleteModel()
