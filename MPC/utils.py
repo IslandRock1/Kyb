@@ -2,6 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from PID import PID
+
 def get_model_shoulder():
     A = np.array([
         [np.float64(0.9999895681021433), np.float64(-0.012167569873969613)],
@@ -95,13 +97,55 @@ def getCompleteModel():
 
     return A, B, C, D
 
-def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
+def addPidToOut(p: PID):
+    out = " | "
+    out += f"P: {p.Kp}, I: {p.Ki}, D: {p.Kd}"
+    return out
+
+def formatNumber(x, digits = 1):
+    x = float(x)
+
+    if x == 0:
+        return "0"
+
+    # if value is too large or too small -> scientific notation
+    if abs(x) >= 1e6 or abs(x) < 1e-3:
+        return f"{x:.{digits}e}"
+
+    # normal compact float
+    return f"{x:.{digits}g}"
+
+def wrap_title(text, max_len=10):
+    if len(text) <= max_len:
+        return text
+    return text[:max_len] + "\n" + wrap_title(text[max_len:], max_len)
+
+def addMatrixToOut(m: np.ndarray):
+    out = " | "
+    out += f"{formatNumber(m.flatten()[0])}"
+    for v in m.flatten()[1:]:
+        out += f", {formatNumber(v)}"
+    return out
+
+def plot_results(time, x_log, u_log, y_log, tuning):
     fig, axs = plt.subplots(3, 1, figsize=(8, 6))
 
-    if (title is None):
-        fig.suptitle(f"Output Cost Q: {Q[0,0]},{Q[1,1]} | Input Cost R: {R[0,0]}", fontsize=14)
-    else:
-        fig.suptitle(title)
+    t = type(tuning[0])
+    outString = "Tuning"
+    title = ""
+    if (t == PID):
+        title = "PID"
+        print("Got tuning pid values.")
+        for p in tuning:
+            outString += addPidToOut(p)
+    elif (t == np.ndarray):
+        title = "MPC"
+        print("Got tuning matrices.")
+        for m in tuning:
+            outString += addMatrixToOut(m)
+
+    # fig.suptitle(wrap_title(outString, 40))
+    fig.suptitle(title + " | Simulated")
 
     axs[0].plot(time, x_log[:, 0], label='x1')
     axs[0].plot(time, x_log[:, 1], label='x2')
@@ -119,16 +163,12 @@ def plot_results(time, x_log, u_log, y_log, y1_log, Q, R, title = None):
 
     axs[2].plot(time, y_log[:,0], label='angle1')
     axs[2].plot(time, y_log[:,2], label='angle2')
-
-    # axs[2].plot(time, y1_log, label = 'angle velocity')
     axs[2].legend()
     axs[2].set_ylabel('Output [deg v deg/s]')
     axs[2].set_xlabel('Time [s]')
     axs[2].grid(True)
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    if (title is None): plt.savefig(f"MPC/Plots/Q{Q[0,0]}_R{R[0,0]}.svg")
-    else: plt.savefig("MPC/Plots/" + title + ".svg")
-
+    plt.savefig("MPC/Plots/" + title + ".svg")
+    plt.savefig("MPC/Plots/" + title + ".png")
     plt.show()
-

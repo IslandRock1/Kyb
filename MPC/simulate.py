@@ -8,7 +8,6 @@ print() # Fuck CLion
 
 pid0 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
 pid1 = PID(40.0, 0.0, 0.0, 0.0, (-255.0, 255.0), 0.01)
-mode = "MPC"
 
 def get_x0(num_steps_active, num_steps_passive):
     """
@@ -44,21 +43,21 @@ def get_x0(num_steps_active, num_steps_passive):
     print(f"{out[0, 0]:.3f}, {out[1,0]:.3f}, {out[2,0]:.3f}, {out[3,0]:.3f}")
     return x0
 
-
-get_x0(100, 0)
-exit()
-
 def simulate_system():
     A, B, C, D = getCompleteModel()
 
-    # MPC cost matrices
-    Q = np.diag([1000000.0, 1000000.0, 10000.0, 10000.0])
-    R = np.diag([0.000001, 0.000001])
+    qv = 5000
+    Qy = np.diag([qv, 0, qv, 0])  # makes MPC penalize only output 0 and 2
+    Q = C.T @ Qy @ C
+    print(f"Q: {Q}")
+    R = np.diag([1.0, 1.0])
+    mode = "MPC"
 
     # Initial state
-    x0 = get_x0(200, 1000) # Shoulder: 93 deg | Wrist: 74 deg
+    x0 = get_x0(200, 1000) # Shoulder: 92 deg | Wrist: 75 deg
     initialState = C @ x0
-    # print(f"Initial state: {initialState[0, 0]:.3f}, {initialState[1,0]:.3f}")
+    print(f"Initial state: {initialState[0, 0]:.3f}, {initialState[2,0]:.3f}")
+
 
     mpc_system = LinearMPC(A, B, C, D, Q, R, n_horizon=20, t_step=0.01)
     mpc_system.init_controller(x0)
@@ -96,13 +95,16 @@ def simulate_system():
     x_log = np.array(x_log)
     u_log = np.array(u_log)
     y_log = (C @ x_log.T).T
-    y1_log = (C @ x_log.T).T
     time = np.arange(N) * 0.01
 
     if (mode == "PID"):
-        plot_results(time, x_log, u_log, y_log, y1_log, Q, R, f"PID")
+        tuning = (pid0, pid1)
+    elif (mode == "MPC"):
+        tuning = (Q, R)
     else:
-        plot_results(time, x_log, u_log, y_log, y1_log, Q, R, "MPC")
+        raise ValueError("What??")
+
+    plot_results(time, x_log, u_log, y_log, tuning)
 
 if __name__ == "__main__":
     simulate_system()
