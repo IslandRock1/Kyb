@@ -28,16 +28,14 @@ class ContactWrenchKalmanFilter:
         self.r_s = skew(self.r_s_vector)
         self.Q = Q
         self.Rf = Rf
-        self.x = np.zeros(9) if init_state is None else np.array(init_state)  # [F(3), T(3)]
-        self.P = np.eye(9) if init_cov is None else np.array(init_cov)
+        self.x = np.zeros(6) if init_state is None else np.array(init_state)  # [F(3), T(3)]
+        self.P = np.eye(6) if init_cov is None else np.array(init_cov)
 
         # State transition (identity)
-        self.A = np.eye(9)                                           # (9,9)
+        self.A = np.eye(6)                                           # (9,9)
 
-        # Measurement matrices
-        self.Hf = np.zeros((6, 9))
-        self.Hf[0:3, 3:6] = np.eye(3)      # F
-        self.Hf[3:6, 6:9] = np.eye(3)      # T
+        # Measurement matrice (identity)
+        self.Hf = np.eye(6)
 
     def predict(self, u, B):
         # Prediction step
@@ -54,15 +52,16 @@ class ContactWrenchKalmanFilter:
 
     def contact_wrench_estimate(self):
         # Output equation (Skrede eq. 22): z_c = [-m*I3 | I3 | 0; -m*[r_s]_x | 0 | I3] x
-        m, r_s = self.m, self.r_s
+        # Don't use/have a from IMU, so we basically don't use the equation?
+        # m, r_s = self.m, self.r_s
         Hc = np.zeros((6, 9))
         # Force row: -m a + F
-        Hc[0:3, 0:3] = -m * np.eye(3)       # -m a
-        Hc[0:3, 3:6] = np.eye(3)            # +F
+        # Hc[0:3, 0:3] = -m * np.eye(3)       # -m a
+        # Hc[0:3, 3:6] = np.eye(3)            # +F
         # Torque row: -m [r_s]_x a +T
-        Hc[3:6, 0:3] = -m * r_s             # -m [r_s]_x a
-        Hc[3:6, 6:9] = np.eye(3)            # +T
-        return Hc @ self.x
+        # Hc[3:6, 0:3] = -m * r_s             # -m [r_s]_x a
+        # Hc[3:6, 6:9] = np.eye(3)            # +T
+        return Hc @ self.x  # add - self.gravity_offset when fixed
 
 # This is how we use it:
 if __name__ == '__main__':
@@ -73,7 +72,7 @@ if __name__ == '__main__':
     kf = ContactWrenchKalmanFilter(m=0.932, r_s=[0,0,0.044], Q=np.eye(9)*1e-3,
                                    Rf=np.eye(6)*1e-2)
     
-    data_available = False # Set to False to prevent the example loop from running
+    data_available = False # Set to False to prevent the test loop under from running
     
     while data_available:
         # Compute control input (u) and process matrix (B) as in text eq (15-16)
