@@ -2,10 +2,10 @@ import time
 import numpy as np
 import random
 from robotController import RobotController
-from MIMOdataCollector import MIMOSystemIdentificationDataCollector
+from SysID.dataCollector import DataCollector
 
-DT = 0.01
-MAX_SAFE_GAIN = int(0.75 * 255)
+dt = 0.01
+maxGain = int(0.75 * 255)
 
 def sine(t, freq=0.5, amp=0.5):
     return amp * np.sin(2*np.pi*freq*t)
@@ -35,14 +35,14 @@ def ramp_full(t, duration=10):
 
 def runPattern(robot, duration, shFun, wrFun, label, collector):
     collector.setDescription(label)
-    steps = int(duration / DT)
+    steps = int(duration / dt)
     for i in range(steps):
-        t = i * DT
-        sh = int(np.clip(shFun(t) * MAX_SAFE_GAIN, -MAX_SAFE_GAIN, MAX_SAFE_GAIN))
-        wr = int(np.clip(wrFun(t) * MAX_SAFE_GAIN, -MAX_SAFE_GAIN, MAX_SAFE_GAIN))
+        t = i * dt
+        sh = int(np.clip(shFun(t) * maxGain, -maxGain, maxGain))
+        wr = int(np.clip(wrFun(t) * maxGain, -maxGain, maxGain))
         robot.setShoulderGain(sh)
         robot.setWristGain(wr)
-        time.sleep(DT)
+        time.sleep(dt)
 
 if __name__ == "__main__":
     random.seed(42)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     robot = RobotController("COM5")
     robot.calibrate()
-    collector = MIMOSystemIdentificationDataCollector(robot, "validation_2.csv")
+    collector = DataCollector(robot, "validation_2.csv")
     collector.startDataCollection()
 
     tests = [

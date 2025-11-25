@@ -2,12 +2,12 @@ import time
 import numpy as np
 import random
 from robotController import RobotController
-from MIMOdataCollector import MIMOSystemIdentificationDataCollector
+from SysID.dataCollector import DataCollector
 
-MAX_SAFE_GAIN = int(0.75 * 255)
-DT = 0.01
-RECOVER_SH_GAIN = 191
-RECOVER_TIME = 7.5
+maxGain = int(0.75 * 255)
+dt = 0.01
+shoulderGainRecovery = 191
+recoveryTime = 7.5
 
 def rampPosNeg(t, duration, amplitude=0.75):
     q = duration / 4
@@ -46,40 +46,40 @@ def chirpLinear(t, duration, f0, f1, amplitude=0.75):
 
 def runPattern(robot, duration, shFun, wrFun, desc, collector):
     collector.setDescription(desc)
-    steps = int(duration / DT)
+    steps = int(duration / dt)
     recovering = False
     recoverUntil = 0
     recoverDir = 0
 
     for i in range(steps):
-        t = i*DT
+        t = i*dt
         shPos = robot.getShoulderPosition()
 
         if not recovering:
             if shPos > 270:
                 recovering = True
                 recoverDir = -1
-                recoverUntil = time.time() + RECOVER_TIME
+                recoverUntil = time.time() + recoveryTime
             elif shPos < -270:
                 recovering = True
                 recoverDir = +1
-                recoverUntil = time.time() + RECOVER_TIME
+                recoverUntil = time.time() + recoveryTime
 
         if recovering:
             if time.time() < recoverUntil:
-                robot.setShoulderGain(recoverDir * RECOVER_SH_GAIN)
+                robot.setShoulderGain(recoverDir * shoulderGainRecovery)
                 robot.setWristGain(0)
-                time.sleep(DT)
+                time.sleep(dt)
                 continue
             recovering = False
 
         sh = shFun(t)
         wr = wrFun(t)
-        shGain = int(np.clip(sh * MAX_SAFE_GAIN, -MAX_SAFE_GAIN, MAX_SAFE_GAIN))
-        wrGain = int(np.clip(wr * MAX_SAFE_GAIN, -MAX_SAFE_GAIN, MAX_SAFE_GAIN))
+        shGain = int(np.clip(sh * maxGain, -maxGain, maxGain))
+        wrGain = int(np.clip(wr * maxGain, -maxGain, maxGain))
         robot.setShoulderGain(shGain)
         robot.setWristGain(wrGain)
-        time.sleep(DT)
+        time.sleep(dt)
 
 if __name__ == "__main__":
     random.seed(69)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     robot = RobotController("COM5")
     robot.calibrate()
 
-    collector = MIMOSystemIdentificationDataCollector(robot, "MIMO_full.csv")
+    collector = DataCollector(robot, "MIMO_full.csv")
     collector.startDataCollection()
 
     rampVariants = [

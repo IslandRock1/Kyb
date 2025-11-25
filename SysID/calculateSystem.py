@@ -30,6 +30,8 @@ inputs_training = np.concatenate(input_training_list)
 outputs_training = np.concatenate(output_training_list)
 timestamps_training = np.concatenate(timestamp_training_list)
 
+print(type(inputs_training))
+
 sample_time = np.mean([np.mean(np.diff(t)) for t in timestamp_training_list])
 
 model = sysid(outputs_training, inputs_training, 'N4SID', tsample=sample_time, SS_fixed_order=4)

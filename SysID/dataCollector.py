@@ -3,7 +3,7 @@ import time
 import threading
 from robotController import RobotController
 
-class MIMOSystemIdentificationDataCollector:
+class DataCollector:
     def __init__(self, robot: "RobotController", filename: str):
         self.robot = robot
         self.filename = filename
@@ -37,7 +37,6 @@ class MIMOSystemIdentificationDataCollector:
 
     def startDataCollection(self):
         if self.collecting:
-            print("Data collection already running.")
             return
         self.movement_description = "No Movement"
         self._data = []
@@ -49,7 +48,6 @@ class MIMOSystemIdentificationDataCollector:
 
     def stopDataCollection(self):
         if not self.collecting:
-            print("Data collection not running.")
             return
 
         self.collecting = False
@@ -62,8 +60,6 @@ class MIMOSystemIdentificationDataCollector:
                 "shoulder_gain", "wrist_gain", "movement_description"
             ])
             writer.writerows(self._data)
-
-        print(f"Saved {len(self._data)} samples → {self.filename}")
 
     def setDescription(self, desc: str):
         self.description = desc
