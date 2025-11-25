@@ -172,3 +172,40 @@ def plot_results(time, x_log, u_log, y_log, tuning):
     plt.savefig("MPC/Plots/" + title + ".svg")
     plt.savefig("MPC/Plots/" + title + ".png")
     plt.show()
+
+
+class SimpleFilter:
+    def __init__(self, method: str = "lowpass_angle", alpha: float = 0.1):
+        self.method = method
+
+        self.alpha = alpha
+        self.out = 0.0
+        self.prevReadings = []
+
+    def update(self, angle, dt):
+        match self.method:
+            case "lowpass_angle": return self.update_lowpass_angle(angle, dt)
+            case "lowpass_vel": return self.update_lowpass_vel(angle, dt)
+
+    def update_lowpass_angle(self, angle, dt):
+        self.prevReadings.append(angle)
+        if (len(self.prevReadings) > 100):
+            self.prevReadings.pop(0)
+
+        oldAngle = self.out
+        newAngle  = self.out * self.alpha + angle * (1.0 - self.alpha)
+        self.out = newAngle
+
+        return (newAngle - oldAngle) / dt
+
+    def update_lowpass_vel(self, angle, dt):
+        self.prevReadings.append(angle)
+        if (len(self.prevReadings) > 100):
+            self.prevReadings.pop(0)
+
+        if (len(self.prevReadings) == 1): return 0.0
+
+        newVel = (self.prevReadings[-1] - self.prevReadings[-2]) / dt
+        self.out = self.out * self.alpha + newVel * (1.0 - self.alpha)
+
+
