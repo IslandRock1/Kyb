@@ -103,6 +103,8 @@ def addPidToOut(p: PID):
     return out
 
 def formatNumber(x, digits = 1):
+    # This function is made by ChatGPT
+
     x = float(x)
 
     if x == 0:
@@ -121,6 +123,8 @@ def wrap_title(text, max_len=10):
     return text[:max_len] + "\n" + wrap_title(text[max_len:], max_len)
 
 def addMatrixToOut(m: np.ndarray):
+    # This function is made by ChatGPT
+
     out = " | "
     out += f"{formatNumber(m.flatten()[0])}"
     for v in m.flatten()[1:]:
@@ -128,8 +132,17 @@ def addMatrixToOut(m: np.ndarray):
     return out
 
 def plot_results(time, x_log, u_log, y_log, tuning, Qy = np.diag([0.0, 0.0, 0.0, 0.0])):
+    """
+
+    This function is largely made by ChatGPT.
+
+    The section with creating the title is made by a human.
+    """
+
+
     fig, axs = plt.subplots(3, 1, figsize=(8, 6))
 
+    ##### HUMAN MADE START ####
     t = type(tuning[0])
     outString = "Tuning"
     title = ""
@@ -143,6 +156,7 @@ def plot_results(time, x_log, u_log, y_log, tuning, Qy = np.diag([0.0, 0.0, 0.0,
         print("Got tuning matrices.")
         for m in tuning:
             outString += addMatrixToOut(m)
+    ##### HUMAN MADE END ####
 
     # fig.suptitle(wrap_title(outString, 40))
     fig.suptitle(title + f" | Simulated | Qy: diag{float(Qy[0,0]), float(Qy[1, 1]), float(Qy[2, 2]), float(Qy[3, 3])}")

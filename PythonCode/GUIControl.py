@@ -1,3 +1,14 @@
+
+"""
+
+This file is made by humans, and lightly modified by ChatGPT.
+All functionality was made by humans. Most structure was made
+by humans.
+
+ChatGPT was used to clean up the tkinter code.
+"""
+
+
 import tkinter as tk
 import serial
 import threading
@@ -26,8 +37,6 @@ def rgb_to_hex(r, g, b):
 
 class ESP32ControlApp:
     def __init__(self, port, baudrate, portSensor, baudrateSensor):
-        # --- Serial setup ---
-
         self.ser = None
         if (port is not None):
             try:
@@ -47,15 +56,12 @@ class ESP32ControlApp:
 
         self.responses = []
 
-        # State variables
         self.serialData = SerialData(0, 0, 0, 0, False, False)
 
-        # --- Tkinter setup ---
         self.root = tk.Tk()
         self.root.title("ESP32 Control")
         self.root.geometry("800x500")
 
-        # ESP32 response label
         self.response_label = tk.Label(self.root, text="ESP32 Response: ---", font=("Consolas", 10))
         self.response_label.pack(pady=10)
 
@@ -65,7 +71,6 @@ class ESP32ControlApp:
         self.filteredLabel = tk.Label(self.root, text="Filtered: ---", font=("Consolas", 10))
         self.filteredLabel.pack(pady=10)
 
-        # Create controls
         self.create_joint_controls("Wrist", 0)
         self.create_joint_controls("Shoulder", 1)
 
@@ -78,10 +83,8 @@ class ESP32ControlApp:
         self.resetAngles.pack(pady=10)
         self.doResetAngles = False
 
-        # Start background thread for serial reading
         threading.Thread(target=self.read_serial, daemon=True).start()
 
-        # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.updateButtonColor()
 
@@ -95,7 +98,6 @@ class ESP32ControlApp:
         self.updateForceLabel()
 
     def update_frame(self, last_time):
-        # Compute FPS
         current_time = perf_counter()
         dt = current_time - last_time
 
@@ -113,15 +115,10 @@ class ESP32ControlApp:
 
         self.root.after(10, self.updateButtonColor)
 
-    # -----------------------------
-    # UI Creation
-    # -----------------------------
     def create_joint_controls(self, name: str, index: int):
-        """Create a position and power control section for a joint"""
         frame = tk.LabelFrame(self.root, text=name, padx=10, pady=10)
         frame.pack(padx=10, pady=10, fill="x")
 
-        # --- Position control ---
         pos_frame = tk.Frame(frame)
         pos_frame.pack(fill="x", pady=5)
 
@@ -137,7 +134,6 @@ class ESP32ControlApp:
         pos_entry.pack(side="left", padx=5)
         pos_entry.bind("<Return>", lambda e, idx=index: self.set_position_from_entry(idx, e))
 
-        # --- Power control ---
         power_frame = tk.Frame(frame)
         power_frame.pack(fill="x", pady=5)
 
@@ -153,17 +149,13 @@ class ESP32ControlApp:
         power_entry.pack(side="left", padx=5)
         power_entry.bind("<Return>", lambda e, idx=index: self.set_power_from_entry(idx, e))
 
-        # Store widgets
         setattr(self, f"slider_pos_{index}", pos_slider)
         setattr(self, f"entry_pos_{index}", pos_entry)
         setattr(self, f"slider_power_{index}", power_slider)
         setattr(self, f"entry_power_{index}", power_entry)
 
-    # -----------------------------
-    # Serial Communication
-    # -----------------------------
+
     def send_values(self):
-        """Send current values to ESP32"""
         msg = (
             f"{self.serialData.position0},{self.serialData.position1},"
             f"{self.serialData.power0},{self.serialData.power1},"
@@ -237,7 +229,7 @@ class ESP32ControlApp:
                     latest = self.ser.readline().decode(errors="ignore").strip()
 
                 if latest is None:
-                    return  # nothing to process
+                    return
 
                 line = latest
 
@@ -258,7 +250,6 @@ class ESP32ControlApp:
             print(e)
 
     def read_serial(self):
-        """Read responses from ESP32 in background"""
 
         last_time = perf_counter()
         while self.running:
@@ -269,9 +260,6 @@ class ESP32ControlApp:
             if (self.ser is not None):
                 self.read_motor()
 
-    # -----------------------------
-    # Slider & Entry Callbacks
-    # -----------------------------
     def update_position(self, index, val):
         val = float(val)
         setattr(self.serialData, f"position{index}", val)
@@ -312,9 +300,6 @@ class ESP32ControlApp:
     def resetAnglesCommand(self):
         self.doResetAngles = True
 
-    # -----------------------------
-    # Helpers
-    # -----------------------------
     @staticmethod
     def format_response(msg: str):
         try:

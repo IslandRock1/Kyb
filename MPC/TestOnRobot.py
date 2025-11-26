@@ -74,7 +74,6 @@ class Test:
         self._thread.join()
 
     def send_values(self):
-        """Send current values to ESP32"""
         with self.espMsgLock:
             self.espMsg = (
                 f"{self.serialData.position0},{self.serialData.position1},"
@@ -123,7 +122,7 @@ class Test:
                         latest = self.ser.readline().decode(errors="ignore").strip()
 
                 if latest is None:
-                    continue  # nothing to process
+                    continue
 
                 self.format_line(latest)
 
@@ -162,7 +161,6 @@ def setup(t: Test):
 
     t0 = perf_counter()
     while (perf_counter() - t0 < 5.0):
-        # Wait for 5 seconds.
         printStates(t, " Waiting..")
 
     t.serialData.positionMode0 = False

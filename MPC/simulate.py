@@ -47,7 +47,7 @@ def simulate_system():
     A, B, C, D = getCompleteModel()
 
     qv = 5000
-    Qy = np.diag([qv, 0, qv, 0])  # makes MPC penalize only output 0 and 2
+    Qy = np.diag([qv, 0, qv, 0])
     Q = C.T @ Qy @ C
     print(f"Q: {Q}")
     R = np.diag([1.0, 1.0])
