@@ -5,9 +5,9 @@ import numpy as np
 import threading
 from dataclasses import dataclass, asdict
 import json
-from time import perf_counter
+from time import perf_counter, sleep
 
-from utils import getCompleteModel
+from utils import getCompleteModel, SimpleFilter
 from linear_mpc import LinearMPC
 from PID import PID
 
@@ -50,6 +50,9 @@ class Test:
         self._currentAngleValues = [0.0, 0.0]
         self._currentPower = [0.0, 0.0]
 
+        self.filter0 = SimpleFilter(method="lowpass_angle", alpha=0.05)
+        self.filter1 = SimpleFilter(method="lowpass_angle", alpha=0.05)
+
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self.read_motor, daemon=True)
         self._data_lock = threading.Lock()
@@ -58,6 +61,7 @@ class Test:
         self.espMsg = ""
         self.espMsgLock = threading.Lock()
 
+        self.numDataReadings = 0
 
         self._thread.start()
 
@@ -90,11 +94,8 @@ class Test:
             values = [float(x) for x in line.split(",")][0:4]
             dt = perf_counter() - prevReading
 
-            new_vel0 = (values[0] - angle[0]) / dt
-            new_vel1 = (values[1] - angle[1]) / dt
-
-            vel[0] = vel[0] * 0.0 + new_vel0 * 1.0
-            vel[1] = vel[1] * 0.0 + new_vel1 * 1.0
+            vel[0] = self.filter0.update(values[0], dt)
+            vel[1] = self.filter1.update(values[1], dt)
 
             angles = [values[0], values[1]]
             power = [values[2], values[3]]
@@ -103,6 +104,7 @@ class Test:
                 self._currentAngleValues = angles
                 self._currentAngleVel = vel
                 self._currentPower = power
+                self.numDataReadings += 1
         except Exception as e:
             print(e)
 
@@ -190,8 +192,8 @@ def main():
 
     setup(t)
     mpc_system = get_mpc(t)
-    pid0 = PID(5.0, 0.0, 0.0, 0.0, (-255, 255), 0.01)
-    pid1 = PID(5.0, 0.0, 0.0, 0.0, (-255, 255), 0.01)
+    pid0 = PID(40.0, 0.0, 0.0, 0.0, (-255, 255), 0.01)
+    pid1 = PID(40.0, 0.0, 0.0, 0.0, (-255, 255), 0.01)
 
     mode = "MPC"
     t0_glob = perf_counter()
@@ -201,6 +203,8 @@ def main():
 
     if (mode != "PID" and mode != "MPC"): raise ValueError("Invalid mode.")
     while (timeSinceStart < max_run_time):
+        t0_iter = perf_counter()
+
         timeSinceStart = perf_counter() - t0_glob
         angle, vel, _ = t.get_data()
 
@@ -218,7 +222,7 @@ def main():
             u0 = mpc_system.step(x_current)
             t1 = perf_counter()
 
-        t.serialData.power0 = int(u0[0] * 0.5)
+        t.serialData.power0 = int( u0[0] * 0.5)
         t.serialData.power1 = int(-u0[1] * 0.5)
         t.send_values()
         printStates(t, f" Power: {u0} | Time: {timeSinceStart:.1f} | Steptime: {t1 - t0}")
@@ -230,8 +234,19 @@ def main():
         logg.time.append(perf_counter())
         logg.power0.append(float(u0[0]))
         logg.power1.append(float(u0[1]))
+
+        sleep_time = 0.01 - (perf_counter() - t0_iter)
+        if (sleep_time < 0.0):
+            print(f"Sleeptime: {sleep_time}")
+            continue
+        if (sleep_time > 0.01):
+            print(f"Sleeptime: {sleep_time}")
+            continue
+        time.sleep(sleep_time)
     print(f"Finished in {perf_counter() - t0_glob:.2f} seconds. Datapoints: {len(logg.angle0)}. Datapoints per seconds = {len(logg.angle0) / (perf_counter() - t0_glob)}.")
     saveLogg(logg, f"{mode}Logg")
+
+    print(f"Num readings from esp: {t.numDataReadings}.")
 
 
 if __name__ == "__main__": main()

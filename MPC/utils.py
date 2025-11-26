@@ -127,7 +127,7 @@ def addMatrixToOut(m: np.ndarray):
         out += f", {formatNumber(v)}"
     return out
 
-def plot_results(time, x_log, u_log, y_log, tuning):
+def plot_results(time, x_log, u_log, y_log, tuning, Qy = np.diag([0.0, 0.0, 0.0, 0.0])):
     fig, axs = plt.subplots(3, 1, figsize=(8, 6))
 
     t = type(tuning[0])
@@ -145,7 +145,7 @@ def plot_results(time, x_log, u_log, y_log, tuning):
             outString += addMatrixToOut(m)
 
     # fig.suptitle(wrap_title(outString, 40))
-    fig.suptitle(title + " | Simulated")
+    fig.suptitle(title + f" | Simulated | Qy: diag{float(Qy[0,0]), float(Qy[1, 1]), float(Qy[2, 2]), float(Qy[3, 3])}")
 
     axs[0].plot(time, x_log[:, 0], label='x1')
     axs[0].plot(time, x_log[:, 1], label='x2')
@@ -186,6 +186,7 @@ class SimpleFilter:
         match self.method:
             case "lowpass_angle": return self.update_lowpass_angle(angle, dt)
             case "lowpass_vel": return self.update_lowpass_vel(angle, dt)
+            case _: raise ValueError("Invalid method!")
 
     def update_lowpass_angle(self, angle, dt):
         self.prevReadings.append(angle)
@@ -207,5 +208,5 @@ class SimpleFilter:
 
         newVel = (self.prevReadings[-1] - self.prevReadings[-2]) / dt
         self.out = self.out * self.alpha + newVel * (1.0 - self.alpha)
-
+        return self.out
 
