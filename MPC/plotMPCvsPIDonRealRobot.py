@@ -14,6 +14,8 @@ def readLogg(title: str) -> Logger:
     return Logger(**data)
 
 def compare_logs(title1: str, title2: str):
+    # This function is made by ChatGPT
+
     # Read logs
     log1 = readLogg(title1)
     log2 = readLogg(title2)

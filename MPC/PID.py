@@ -1,8 +1,8 @@
 
 """
 This file is written by ChatGPT
-Some very small modifications were made,
-but this is almost exclusivly ChatGPT
+
+ChatGPT is stupid, so we had to do some changes, but mostly ChatGPT.
 """
 
 class PID:

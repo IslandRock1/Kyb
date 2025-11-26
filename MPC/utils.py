@@ -103,6 +103,8 @@ def addPidToOut(p: PID):
     return out
 
 def formatNumber(x, digits = 1):
+    # This function is made by ChatGPT
+
     x = float(x)
 
     if x == 0:
@@ -121,15 +123,26 @@ def wrap_title(text, max_len=10):
     return text[:max_len] + "\n" + wrap_title(text[max_len:], max_len)
 
 def addMatrixToOut(m: np.ndarray):
+    # This function is made by ChatGPT
+
     out = " | "
     out += f"{formatNumber(m.flatten()[0])}"
     for v in m.flatten()[1:]:
         out += f", {formatNumber(v)}"
     return out
 
-def plot_results(time, x_log, u_log, y_log, tuning):
+def plot_results(time, x_log, u_log, y_log, tuning, Qy = np.diag([0.0, 0.0, 0.0, 0.0])):
+    """
+
+    This function is largely made by ChatGPT.
+
+    The section with creating the title is made by a human.
+    """
+
+
     fig, axs = plt.subplots(3, 1, figsize=(8, 6))
 
+    ##### HUMAN MADE START ####
     t = type(tuning[0])
     outString = "Tuning"
     title = ""
@@ -143,9 +156,10 @@ def plot_results(time, x_log, u_log, y_log, tuning):
         print("Got tuning matrices.")
         for m in tuning:
             outString += addMatrixToOut(m)
+    ##### HUMAN MADE END ####
 
     # fig.suptitle(wrap_title(outString, 40))
-    fig.suptitle(title + " | Simulated")
+    fig.suptitle(title + f" | Simulated | Qy: diag{float(Qy[0,0]), float(Qy[1, 1]), float(Qy[2, 2]), float(Qy[3, 3])}")
 
     axs[0].plot(time, x_log[:, 0], label='x1')
     axs[0].plot(time, x_log[:, 1], label='x2')
@@ -172,3 +186,41 @@ def plot_results(time, x_log, u_log, y_log, tuning):
     plt.savefig("MPC/Plots/" + title + ".svg")
     plt.savefig("MPC/Plots/" + title + ".png")
     plt.show()
+
+
+class SimpleFilter:
+    def __init__(self, method: str = "lowpass_angle", alpha: float = 0.1):
+        self.method = method
+
+        self.alpha = alpha
+        self.out = 0.0
+        self.prevReadings = []
+
+    def update(self, angle, dt):
+        match self.method:
+            case "lowpass_angle": return self.update_lowpass_angle(angle, dt)
+            case "lowpass_vel": return self.update_lowpass_vel(angle, dt)
+            case _: raise ValueError("Invalid method!")
+
+    def update_lowpass_angle(self, angle, dt):
+        self.prevReadings.append(angle)
+        if (len(self.prevReadings) > 100):
+            self.prevReadings.pop(0)
+
+        oldAngle = self.out
+        newAngle  = self.out * self.alpha + angle * (1.0 - self.alpha)
+        self.out = newAngle
+
+        return (newAngle - oldAngle) / dt
+
+    def update_lowpass_vel(self, angle, dt):
+        self.prevReadings.append(angle)
+        if (len(self.prevReadings) > 100):
+            self.prevReadings.pop(0)
+
+        if (len(self.prevReadings) == 1): return 0.0
+
+        newVel = (self.prevReadings[-1] - self.prevReadings[-2]) / dt
+        self.out = self.out * self.alpha + newVel * (1.0 - self.alpha)
+        return self.out
+

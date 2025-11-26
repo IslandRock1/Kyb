@@ -17,6 +17,9 @@ def plotSensorData(sensorData: list[SensorData]):
     plt.show()
 
 def plotEncoderData(encoderData: list[EncoderData]):
+    # This function was made by ChatGPT
+    # And modified by the group.
+
     x_values = [x.timepoint - encoderData[0].timepoint for x in encoderData]
     y_values_wrist = [x.wrist_angle for x in encoderData]
     y_values_shoulder = [x.shoulder_angle for x in encoderData]
@@ -37,14 +40,14 @@ def plotEncoderData(encoderData: list[EncoderData]):
     ax1.plot(x_values, y_values_shoulder, color=color)
     ax1.tick_params(axis='y', labelcolor=color)
 
-    ax2 = ax1.twinx()  # instantiate a second Axes that shares the same x-axis
+    ax2 = ax1.twinx()
 
     color = 'tab:blue'
-    ax2.set_ylabel('Shoulder power (V)', color=color)  # we already handled the x-label with ax1
+    ax2.set_ylabel('Shoulder power (V)', color=color)
     ax2.plot(x_values, y_values_shoulder_power, color=color)
     ax2.tick_params(axis='y', labelcolor=color)
 
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    fig.tight_layout()
     plt.title("Angle vs Power")
     plt.grid()
     plt.show()

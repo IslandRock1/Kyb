@@ -61,12 +61,10 @@ class LinearMPC:
         self.sim.setup()
 
     def init_controller(self, x0):
-        """Initialize MPC for either simulation or real system."""
         self.mpc.x0 = x0
         self.mpc.u0 = np.zeros((self.nu, 1))
         self.mpc.set_initial_guess()
-        self.sim.x0 = x0  # Also set simulator initial state
+        self.sim.x0 = x0
 
     def step(self, x_current):
-        """Compute the control input for a given state."""
         return self.mpc.make_step(x_current)
