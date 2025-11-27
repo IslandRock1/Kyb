@@ -36,6 +36,7 @@ sample_time = np.mean([np.mean(np.diff(t)) for t in timestamp_training_list])
 
 model = sysid(outputs_training, inputs_training, 'N4SID', tsample=sample_time, SS_fixed_order=4)
 
+#this printing code is made by ChatGPT
 print("A = np.array([")
 for row in model.A:
     print("    " + str(list(row)) + ",")
@@ -78,15 +79,21 @@ timestamp_uniform_validation = np.arange(n_samples_validation) * sample_time
 
 _, output_predicted_validation = ct.forced_response(state_space_system, T=timestamp_uniform_validation, U=input_validation.T)
 
-rmse = np.sqrt(np.mean((output_validation - output_predicted_validation.T)**2, axis=0))
 
+y_mean = np.mean(output_validation, axis=0)
+fit = 100 * (1 - np.linalg.norm(output_validation - output_predicted_validation.T, axis=0) /
+             np.linalg.norm(output_validation - y_mean, axis=0))
+
+#This graphing is made by ChatGPT
 labels = ["Shoulder Pos", "Shoulder Vel", "Wrist Pos", "Wrist Vel"]
 plt.figure(figsize=(12, 10))
 for i in range(4):
     plt.subplot(4, 1, i+1)
     plt.plot(timestamp_uniform_validation, output_validation[:, i], label="Actual")
     plt.plot(timestamp_uniform_validation, output_predicted_validation[i], "--", label="Predicted")
-    plt.title(f"{labels[i]} (RMSE={rmse[i]:.3f})")
+
+    plt.title(f"{labels[i]} (FIT={fit[i]:.1f}%)")
+
     plt.grid(True)
     plt.legend()
 
