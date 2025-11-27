@@ -1,3 +1,5 @@
+#THIS ENTIRE VALIDATION PROGRAM IS BASED ON runSysID.py BUT MADE BY CHATGPT.
+
 import time
 import numpy as np
 import random
